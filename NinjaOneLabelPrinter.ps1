@@ -210,18 +210,6 @@ function Get-NinjaAllDevicesDetailed {
     return Invoke-NinjaApi -Endpoint "/devices-detailed"
 }
 
-function ConvertTo-SafeDateTime {
-    param($UnixTime)
-    try {
-        # Handle array values - take first element
-        $val = if ($UnixTime -is [System.Array]) { $UnixTime[0] } else { $UnixTime }
-        if ($null -eq $val -or $val -eq '' -or $val -eq 0) { return $null }
-        return [DateTimeOffset]::FromUnixTimeSeconds([long]$val).DateTime
-    } catch {
-        return $null
-    }
-}
-
 function Get-SafeOsName {
     param($OsObject)
     try {
@@ -315,7 +303,7 @@ function Get-SafeOsName {
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
                     <DataGridTextColumn Header="Typ" Binding="{Binding NodeClass}" Width="80"/>
                     <DataGridTextColumn Header="OS" Binding="{Binding OS}" Width="120"/>
-                    <DataGridTextColumn Header="Erstellt" Binding="{Binding CreateTime}" Width="100"/>
+                    <DataGridTextColumn Header="Datum" Binding="{Binding Datum}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
 
@@ -337,7 +325,7 @@ function Get-SafeOsName {
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
                     <DataGridTextColumn Header="Organisation" Binding="{Binding OrgName}" Width="120"/>
-                    <DataGridTextColumn Header="Hinzugefügt" Binding="{Binding CreateTime}" Width="100"/>
+                    <DataGridTextColumn Header="Datum" Binding="{Binding Datum}" Width="100"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
@@ -626,13 +614,13 @@ $btnConnect.Add_Click({
     try {
         $script:AllDevices = @(Get-NinjaAllDevicesDetailed)
         $recentDevices = $script:AllDevices |
-            Sort-Object { $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt } else { [DateTime]::MinValue } } -Descending |
+            Sort-Object { $_.id } -Descending |
             Select-Object -First 20 |
             ForEach-Object {
                 [PSCustomObject]@{
                     SystemName = $_.systemName
                     OrgName    = if ($script:OrgLookup.ContainsKey($_.organizationId)) { $script:OrgLookup[$_.organizationId] } else { "?" }
-                    CreateTime = $( $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt.ToString("dd.MM.yyyy") } else { "-" } )
+                    Datum      = (Get-Date).ToString("dd.MM.yyyy")
                     RawDevice  = $_
                 }
             }
@@ -661,7 +649,7 @@ $tvOrganizations.Add_SelectedItemChanged({
                 SystemName = $_.systemName
                 NodeClass  = $_.nodeClass
                 OS         = Get-SafeOsName $_.os
-                CreateTime = $( $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt.ToString("dd.MM.yyyy") } else { "-" } )
+                Datum      = (Get-Date).ToString("dd.MM.yyyy")
                 RawDevice  = $_
             }
         }
