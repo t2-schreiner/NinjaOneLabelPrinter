@@ -308,8 +308,7 @@ function Get-SafeOsName {
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
                     <DataGridTextColumn Header="Typ" Binding="{Binding NodeClass}" Width="80"/>
-                    <DataGridTextColumn Header="OS" Binding="{Binding OS}" Width="120"/>
-                    <DataGridTextColumn Header="Datum" Binding="{Binding Datum}" Width="100"/>
+                    <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
             </DataGrid>
 
@@ -331,7 +330,7 @@ function Get-SafeOsName {
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
                     <DataGridTextColumn Header="Organisation" Binding="{Binding OrgName}" Width="120"/>
-                    <DataGridTextColumn Header="Datum" Binding="{Binding Datum}" Width="100"/>
+                    <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
@@ -627,7 +626,7 @@ $btnConnect.Add_Click({
             [void]$recentDevices.Add([PSCustomObject]@{
                 SystemName = [string]$dev.systemName
                 OrgName    = if ($script:OrgLookup.ContainsKey($dev.organizationId)) { $script:OrgLookup[$dev.organizationId] } else { "?" }
-                Datum      = (Get-Date).ToString("dd.MM.yyyy")
+                AssetId    = $dev.id
                 RawDevice  = $dev
             })
         }
@@ -656,8 +655,7 @@ $tvOrganizations.Add_SelectedItemChanged({
             [void]$deviceList.Add([PSCustomObject]@{
                 SystemName = [string]$dev.systemName
                 NodeClass  = $dev.nodeClass
-                OS         = Get-SafeOsName $dev.os
-                Datum      = (Get-Date).ToString("dd.MM.yyyy")
+                AssetId    = $dev.id
                 RawDevice  = $dev
             })
         }
@@ -785,9 +783,17 @@ function Update-LabelPreview {
 }
 
 $btnPreview.Add_Click({ Update-LabelPreview })
-$dgDevices.Add_SelectionChanged({ Update-LabelPreview })
+$dgDevices.Add_SelectionChanged({
+    if ($dgDevices.SelectedItems.Count -gt 0) {
+        $dgRecent.UnselectAll()
+    }
+    Update-LabelPreview
+})
 $dgRecent.Add_SelectionChanged({
-    # Beim Klick auf "Zuletzt hinzugefügt" → OrgName übernehmen
+    # Beim Klick auf "Zuletzt hinzugefügt" → OrgName übernehmen und obere Liste deselektieren
+    if ($dgRecent.SelectedItems.Count -gt 0) {
+        $dgDevices.UnselectAll()
+    }
     if ($dgRecent.SelectedItem) {
         $txtOrgName.Text = $dgRecent.SelectedItem.OrgName
     }
