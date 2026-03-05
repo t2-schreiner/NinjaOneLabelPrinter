@@ -613,7 +613,7 @@ $btnConnect.Add_Click({
     # Alle Geräte für "Zuletzt hinzugefügt" laden
     try {
         $script:AllDevices = @(Get-NinjaAllDevicesDetailed)
-        $recentDevices = $script:AllDevices |
+        $recentDevices = @($script:AllDevices |
             Sort-Object { $_.id } -Descending |
             Select-Object -First 20 |
             ForEach-Object {
@@ -623,7 +623,7 @@ $btnConnect.Add_Click({
                     Datum      = (Get-Date).ToString("dd.MM.yyyy")
                     RawDevice  = $_
                 }
-            }
+            })
         $dgRecent.ItemsSource = $recentDevices
     } catch {
         # Fallback: Zuletzt-Liste leer lassen
@@ -644,7 +644,7 @@ $tvOrganizations.Add_SelectedItemChanged({
 
     try {
         $devices = @(Get-NinjaDevicesByOrg -OrgId $orgId)
-        $deviceList = $devices | ForEach-Object {
+        $deviceList = @($devices | ForEach-Object {
             [PSCustomObject]@{
                 SystemName = $_.systemName
                 NodeClass  = $_.nodeClass
@@ -652,7 +652,7 @@ $tvOrganizations.Add_SelectedItemChanged({
                 Datum      = (Get-Date).ToString("dd.MM.yyyy")
                 RawDevice  = $_
             }
-        }
+        })
         $dgDevices.ItemsSource = $deviceList
     } catch {
         [System.Windows.MessageBox]::Show("Fehler beim Laden der Geräte:`n$($_.Exception.Message)", "Fehler", "OK", "Error")
