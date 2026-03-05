@@ -210,6 +210,31 @@ function Get-NinjaAllDevicesDetailed {
     return Invoke-NinjaApi -Endpoint "/devices-detailed"
 }
 
+function ConvertTo-SafeDateTime {
+    param($UnixTime)
+    try {
+        # Handle array values - take first element
+        $val = if ($UnixTime -is [System.Array]) { $UnixTime[0] } else { $UnixTime }
+        if ($null -eq $val -or $val -eq '' -or $val -eq 0) { return $null }
+        return [DateTimeOffset]::FromUnixTimeSeconds([long]$val).DateTime
+    } catch {
+        return $null
+    }
+}
+
+function Get-SafeOsName {
+    param($OsObject)
+    try {
+        $os = if ($OsObject -is [System.Array]) { $OsObject[0] } else { $OsObject }
+        if ($null -eq $os) { return "-" }
+        if ($os -is [string]) { return $os }
+        if ($os.PSObject.Properties['name'] -and $os.name) { return [string]$os.name }
+        return "-"
+    } catch {
+        return "-"
+    }
+}
+
 # --- XAML UI Definition ---
 [xml]$xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -601,13 +626,13 @@ $btnConnect.Add_Click({
     try {
         $script:AllDevices = @(Get-NinjaAllDevicesDetailed)
         $recentDevices = $script:AllDevices |
-            Sort-Object { if ($_.createTime) { [DateTimeOffset]::FromUnixTimeSeconds($_.createTime).DateTime } else { [DateTime]::MinValue } } -Descending |
+            Sort-Object { $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt } else { [DateTime]::MinValue } } -Descending |
             Select-Object -First 20 |
             ForEach-Object {
                 [PSCustomObject]@{
                     SystemName = $_.systemName
                     OrgName    = if ($script:OrgLookup.ContainsKey($_.organizationId)) { $script:OrgLookup[$_.organizationId] } else { "?" }
-                    CreateTime = if ($_.createTime) { [DateTimeOffset]::FromUnixTimeSeconds($_.createTime).DateTime.ToString("dd.MM.yyyy") } else { "-" }
+                    CreateTime = $( $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt.ToString("dd.MM.yyyy") } else { "-" } )
                     RawDevice  = $_
                 }
             }
@@ -635,8 +660,8 @@ $tvOrganizations.Add_SelectedItemChanged({
             [PSCustomObject]@{
                 SystemName = $_.systemName
                 NodeClass  = $_.nodeClass
-                OS         = if ($_.os) { $_.os.name } else { "-" }
-                CreateTime = if ($_.createTime) { [DateTimeOffset]::FromUnixTimeSeconds($_.createTime).DateTime.ToString("dd.MM.yyyy") } else { "-" }
+                OS         = Get-SafeOsName $_.os
+                CreateTime = $( $dt = ConvertTo-SafeDateTime $_.createTime; if ($dt) { $dt.ToString("dd.MM.yyyy") } else { "-" } )
                 RawDevice  = $_
             }
         }
