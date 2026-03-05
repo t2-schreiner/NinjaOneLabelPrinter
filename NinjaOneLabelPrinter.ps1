@@ -194,7 +194,13 @@ function Invoke-NinjaApi {
     param([string]$Endpoint)
     $headers = @{ Authorization = "Bearer $($script:AccessToken)" }
     $url = "$($script:Config.NinjaBaseUrl)/api/v2$Endpoint"
-    return Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+    $response = Invoke-RestMethod -Uri $url -Headers $headers -Method Get
+    # Paginated NinjaOne API responses wrap the actual data in a results/items array
+    if ($null -ne $response -and $response -isnot [System.Array]) {
+        if ($response.PSObject.Properties['results'] -and $null -ne $response.results) { return $response.results }
+        if ($response.PSObject.Properties['items']   -and $null -ne $response.items)   { return $response.items }
+    }
+    return $response
 }
 
 function Get-NinjaOrganizations {
