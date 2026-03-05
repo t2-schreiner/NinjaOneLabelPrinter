@@ -116,6 +116,9 @@ function Get-AppConfig {
         LastPrinter            = ""
         LabelWidthCm           = 4.0
         LabelHeightCm          = 2.5
+        PaddingMm              = 0.0
+        HeaderHeightPercent    = 22
+        LogoHeightPercent      = 22
         LogoPath               = ""
         EncryptedClientId      = ""
         EncryptedClientSecret  = ""
@@ -146,6 +149,9 @@ function Save-AppConfig($cfg) {
         LastPrinter            = $cfg.LastPrinter
         LabelWidthCm           = $cfg.LabelWidthCm
         LabelHeightCm          = $cfg.LabelHeightCm
+        PaddingMm              = $cfg.PaddingMm
+        HeaderHeightPercent    = $cfg.HeaderHeightPercent
+        LogoHeightPercent      = $cfg.LogoHeightPercent
         LogoPath               = $cfg.LogoPath
         EncryptedClientId      = ""
         EncryptedClientSecret  = ""
@@ -359,6 +365,22 @@ function Get-SafeOsName {
                         <TextBlock Text=" cm" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
                     </StackPanel>
 
+                    <!-- Innenabstand -->
+                    <TextBlock Text="Innenabstand (mm, umlaufend):" Style="{StaticResource HeaderText}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBox Name="txtPaddingMm" Style="{StaticResource InputBox}" Width="60" Text="0"/>
+                        <TextBlock Text=" mm" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- Kopfzeile / Logo Höhe -->
+                    <TextBlock Text="Kopfzeile / Logo (% der Etikettenhöhe):" Style="{StaticResource HeaderText}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBox Name="txtHeaderPercent" Style="{StaticResource InputBox}" Width="50" Text="22"/>
+                        <TextBlock Text=" / " Foreground="White" VerticalAlignment="Center" FontSize="12"/>
+                        <TextBox Name="txtLogoPercent" Style="{StaticResource InputBox}" Width="50" Text="22"/>
+                        <TextBlock Text=" %" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+
                     <!-- Logo -->
                     <TextBlock Text="Logo:" Style="{StaticResource HeaderText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -376,10 +398,11 @@ function Get-SafeOsName {
 
                     <!-- Vorschau -->
                     <TextBlock Text="Vorschau:" Style="{StaticResource HeaderText}" Margin="0,4,0,4"/>
-                    <Border Name="borderPreview" Background="White" BorderBrush="#888"
+                    <Border Name="borderPreview" Background="#1e1e2e" BorderBrush="#888"
                             BorderThickness="1" HorizontalAlignment="Center"
                             Margin="0,0,0,12" Padding="0">
-                        <Canvas Name="canvasPreview" Width="280" Height="175"/>
+                        <Canvas Name="canvasPreview" Width="280" Height="175"
+                                Background="#1e1e2e"/>
                     </Border>
 
                     <!-- Buttons -->
@@ -415,6 +438,9 @@ $txtLabelWidth    = $window.FindName("txtLabelWidth")
 $txtLabelHeight   = $window.FindName("txtLabelHeight")
 $txtLogoPath      = $window.FindName("txtLogoPath")
 $btnSelectLogo    = $window.FindName("btnSelectLogo")
+$txtPaddingMm     = $window.FindName("txtPaddingMm")
+$txtHeaderPercent = $window.FindName("txtHeaderPercent")
+$txtLogoPercent   = $window.FindName("txtLogoPercent")
 $cbPrinter        = $window.FindName("cbPrinter")
 $canvasPreview    = $window.FindName("canvasPreview")
 $btnPreview       = $window.FindName("btnPreview")
@@ -425,9 +451,12 @@ $btnReset         = $window.FindName("btnReset")
 
 # --- Initialisierung ---
 $txtDate.Text = (Get-Date).ToString("MM/yyyy")
-$txtLabelWidth.Text  = $script:Config.LabelWidthCm.ToString()
-$txtLabelHeight.Text = $script:Config.LabelHeightCm.ToString()
-$txtLogoPath.Text    = $script:Config.LogoPath
+$txtLabelWidth.Text    = $script:Config.LabelWidthCm.ToString()
+$txtLabelHeight.Text   = $script:Config.LabelHeightCm.ToString()
+$txtPaddingMm.Text     = $script:Config.PaddingMm.ToString()
+$txtHeaderPercent.Text = $script:Config.HeaderHeightPercent.ToString()
+$txtLogoPercent.Text   = $script:Config.LogoHeightPercent.ToString()
+$txtLogoPath.Text      = $script:Config.LogoPath
 
 # Drucker laden
 $printers = (Get-Printer | Where-Object { $_.Type -eq "Local" -or $_.Type -eq "Connection" }).Name
@@ -676,54 +705,114 @@ $btnSelectLogo.Add_Click({
     }
 })
 
+# --- Hilfsfunktion: Zahl parsen (Komma oder Punkt) ---
+function Parse-LocaleNumber([string]$Text) {
+    [double]::Parse($Text.Replace(",", "."), [System.Globalization.CultureInfo]::InvariantCulture)
+}
+
 # --- Vorschau zeichnen ---
 function Update-LabelPreview {
     $canvasPreview.Children.Clear()
 
-    $canvasW = $canvasPreview.Width    # 280
-    $canvasH = $canvasPreview.Height   # 175
+    $canvasMaxW = $canvasPreview.Width    # 280
+    $canvasMaxH = $canvasPreview.Height   # 175
+
+    # Etikettengröße parsen
+    try {
+        $labelWcm = Parse-LocaleNumber $txtLabelWidth.Text
+        $labelHcm = Parse-LocaleNumber $txtLabelHeight.Text
+    } catch { $labelWcm = 4.0; $labelHcm = 2.5 }
+    if ($labelWcm -le 0) { $labelWcm = 4.0 }
+    if ($labelHcm -le 0) { $labelHcm = 2.5 }
+
+    # Einstellungen parsen
+    try { $paddingMm = Parse-LocaleNumber $txtPaddingMm.Text } catch { $paddingMm = 0 }
+    try { $headerPct = Parse-LocaleNumber $txtHeaderPercent.Text } catch { $headerPct = 22 }
+    try { $logoPct   = Parse-LocaleNumber $txtLogoPercent.Text } catch { $logoPct = 22 }
+    if ($paddingMm -lt 0) { $paddingMm = 0 }
+    if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
+    if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
+
+    # Canvas-Größe an Etikettenproportionen anpassen
+    $labelAspect  = $labelWcm / $labelHcm
+    $canvasAspect = $canvasMaxW / $canvasMaxH
+    if ($labelAspect -gt $canvasAspect) {
+        $cW = $canvasMaxW
+        $cH = $canvasMaxW / $labelAspect
+    } else {
+        $cH = $canvasMaxH
+        $cW = $canvasMaxH * $labelAspect
+    }
+    $offsetX = ($canvasMaxW - $cW) / 2
+    $offsetY = ($canvasMaxH - $cH) / 2
+
+    # Padding in Canvas-Koordinaten (mm → cm, dann proportional skalieren)
+    $paddingCm = $paddingMm / 10.0
+    $scale     = $cW / $labelWcm   # Canvas-Pixel pro cm
+    $padPx     = $paddingCm * $scale
+
+    # Inhaltsbereich nach Padding
+    $contentX = $padPx
+    $contentY = $padPx
+    $contentW = $cW - 2 * $padPx
+    $contentH = $cH - 2 * $padPx
+    if ($contentW -lt 10) { $contentW = 10 }
+    if ($contentH -lt 10) { $contentH = 10 }
 
     # Hintergrund weiß
     $bg = New-Object System.Windows.Shapes.Rectangle
-    $bg.Width  = $canvasW
-    $bg.Height = $canvasH
+    $bg.Width  = $cW
+    $bg.Height = $cH
     $bg.Fill   = [System.Windows.Media.Brushes]::White
-    [System.Windows.Controls.Canvas]::SetLeft($bg, 0)
-    [System.Windows.Controls.Canvas]::SetTop($bg, 0)
+    [System.Windows.Controls.Canvas]::SetLeft($bg, $offsetX)
+    [System.Windows.Controls.Canvas]::SetTop($bg, $offsetY)
     $canvasPreview.Children.Add($bg) | Out-Null
 
     # Rahmen
     $border = New-Object System.Windows.Shapes.Rectangle
-    $border.Width  = $canvasW
-    $border.Height = $canvasH
+    $border.Width  = $cW
+    $border.Height = $cH
     $border.Stroke = [System.Windows.Media.Brushes]::Black
-    $border.StrokeThickness = 2
-    [System.Windows.Controls.Canvas]::SetLeft($border, 0)
-    [System.Windows.Controls.Canvas]::SetTop($border, 0)
+    $border.StrokeThickness = 1
+    [System.Windows.Controls.Canvas]::SetLeft($border, $offsetX)
+    [System.Windows.Controls.Canvas]::SetTop($border, $offsetY)
     $canvasPreview.Children.Add($border) | Out-Null
 
-    # Oberer Balken (dicker) mit Organisationsname
-    $headerH = 30
+    # --- Proportionale Berechnung (identisch mit Drucklogik) ---
+    # Alle Positionen/Größen relativ zu contentW/contentH, gleiche Formeln wie beim Druck
+
+    # Oberer Balken mit Organisationsname
+    $headerH = [Math]::Max(8, $contentH * $headerPct / 100)
     $header = New-Object System.Windows.Shapes.Rectangle
-    $header.Width  = $canvasW
+    $header.Width  = $contentW
     $header.Height = $headerH
     $header.Fill   = [System.Windows.Media.Brushes]::Black
-    [System.Windows.Controls.Canvas]::SetLeft($header, 0)
-    [System.Windows.Controls.Canvas]::SetTop($header, 0)
+    [System.Windows.Controls.Canvas]::SetLeft($header, $offsetX + $contentX)
+    [System.Windows.Controls.Canvas]::SetTop($header, $offsetY + $contentY)
     $canvasPreview.Children.Add($header) | Out-Null
 
+    # Org-Name: Schriftgröße proportional (GDI+ pt → WPF px: × 4/3)
+    $orgFontPt = [Math]::Max(7, $headerH * 0.45)
+    $orgFontPx = $orgFontPt * (4.0 / 3.0)
     $orgText = New-Object System.Windows.Controls.TextBlock
-    $orgText.Text       = $txtOrgName.Text
-    $orgText.Foreground = [System.Windows.Media.Brushes]::White
-    $orgText.FontSize   = 13
-    $orgText.FontWeight = [System.Windows.FontWeights]::Bold
-    $orgText.Width      = $canvasW - 10
+    $orgText.Text          = $txtOrgName.Text
+    $orgText.Foreground    = [System.Windows.Media.Brushes]::White
+    $orgText.FontFamily    = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    $orgText.FontSize      = $orgFontPx
+    $orgText.FontWeight    = [System.Windows.FontWeights]::Bold
+    $orgText.Width         = $contentW
     $orgText.TextAlignment = [System.Windows.TextAlignment]::Center
-    [System.Windows.Controls.Canvas]::SetLeft($orgText, 5)
-    [System.Windows.Controls.Canvas]::SetTop($orgText, 5)
+    $orgText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
+
+    # Vertikal zentriert im Header
+    $orgText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
+    $orgTextH = $orgText.DesiredSize.Height
+    $orgTopOffset = [Math]::Max(0, ($headerH - $orgTextH) / 2)
+    [System.Windows.Controls.Canvas]::SetLeft($orgText, $offsetX + $contentX)
+    [System.Windows.Controls.Canvas]::SetTop($orgText, $offsetY + $contentY + $orgTopOffset)
     $canvasPreview.Children.Add($orgText) | Out-Null
 
-    # Gerätename in der Mitte
+    # Gerätename ermitteln
     $selectedDevices = @()
     if ($dgDevices.SelectedItems.Count -gt 0) {
         $selectedDevices = $dgDevices.SelectedItems
@@ -732,53 +821,92 @@ function Update-LabelPreview {
     }
     $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "GERÄTENAME" }
 
+    # Gerätename: Schriftgröße proportional mit Auto-Shrink
+    $devFontPt = [Math]::Max(8, $contentH * 0.12)
+    $devFontPx = $devFontPt * (4.0 / 3.0)
+
+    # Auto-Shrink: Schriftgröße verkleinern, falls Text zu breit
+    $devAvailW = $contentW - 10
+    $minDevFontPx = 6
+    $tempText = New-Object System.Windows.Controls.TextBlock
+    $tempText.Text       = $deviceName
+    $tempText.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    $tempText.FontWeight = [System.Windows.FontWeights]::Bold
+    $tempText.FontSize   = $devFontPx
+    $tempText.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
+    while ($tempText.DesiredSize.Width -gt $devAvailW -and $devFontPx -gt $minDevFontPx) {
+        $devFontPx = $devFontPx * 0.9
+        $tempText.FontSize = $devFontPx
+        $tempText.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
+    }
+
     $deviceText = New-Object System.Windows.Controls.TextBlock
-    $deviceText.Text       = $deviceName
-    $deviceText.Foreground = [System.Windows.Media.Brushes]::Black
-    $deviceText.FontSize   = 16
-    $deviceText.FontWeight = [System.Windows.FontWeights]::Bold
-    $deviceText.Width      = $canvasW - 20
+    $deviceText.Text          = $deviceName
+    $deviceText.Foreground    = [System.Windows.Media.Brushes]::Black
+    $deviceText.FontFamily    = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    $deviceText.FontSize      = $devFontPx
+    $deviceText.FontWeight    = [System.Windows.FontWeights]::Bold
+    $deviceText.Width         = $contentW
     $deviceText.TextAlignment = [System.Windows.TextAlignment]::Center
-    [System.Windows.Controls.Canvas]::SetLeft($deviceText, 10)
-    [System.Windows.Controls.Canvas]::SetTop($deviceText, ($canvasH / 2) - 15)
+    $deviceText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
+
+    # Vertikal zentriert im mittleren Bereich (zwischen Header und Fußzeile)
+    $deviceText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
+    $devTextH = $deviceText.DesiredSize.Height
+    $middleTop = $contentY + $headerH
+    $footerH = [Math]::Max(8, $contentH * $logoPct / 100)
+    $middleH = $contentH - $headerH - $footerH
+    $devTopOffset = $middleTop + [Math]::Max(0, ($middleH - $devTextH) / 2)
+    [System.Windows.Controls.Canvas]::SetLeft($deviceText, $offsetX + $contentX)
+    [System.Windows.Controls.Canvas]::SetTop($deviceText, $offsetY + $devTopOffset)
     $canvasPreview.Children.Add($deviceText) | Out-Null
 
     # Datum links unten
+    $dateFontPt = [Math]::Max(5, $contentH * 0.08)
+    $dateFontPx = $dateFontPt * (4.0 / 3.0)
     $dateText = New-Object System.Windows.Controls.TextBlock
     $dateText.Text       = $txtDate.Text
-    $dateText.Foreground = [System.Windows.Media.Brushes]::DarkGray
-    $dateText.FontSize   = 10
-    [System.Windows.Controls.Canvas]::SetLeft($dateText, 8)
-    [System.Windows.Controls.Canvas]::SetTop($dateText, $canvasH - 22)
+    $dateText.Foreground = [System.Windows.Media.Brushes]::DimGray
+    $dateText.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    $dateText.FontSize   = $dateFontPx
+    $dateText.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
+    $dateTextH = $dateText.DesiredSize.Height
+    [System.Windows.Controls.Canvas]::SetLeft($dateText, $offsetX + $contentX + 6)
+    [System.Windows.Controls.Canvas]::SetTop($dateText, $offsetY + $contentY + $contentH - $dateTextH - 4)
     $canvasPreview.Children.Add($dateText) | Out-Null
 
     # Logo rechts unten
     if ($txtLogoPath.Text -and (Test-Path $txtLogoPath.Text)) {
         try {
+            $logoH = $footerH
             $bitmapImage = New-Object System.Windows.Media.Imaging.BitmapImage
             $bitmapImage.BeginInit()
             $bitmapImage.UriSource = New-Object System.Uri($txtLogoPath.Text)
-            $bitmapImage.DecodePixelHeight = 30
+            $bitmapImage.DecodePixelHeight = [int][Math]::Max(10, $logoH * 2)
             $bitmapImage.EndInit()
+
+            $logoAspect = $bitmapImage.PixelWidth / [Math]::Max(1, $bitmapImage.PixelHeight)
+            $logoW = $logoH * $logoAspect
 
             $img = New-Object System.Windows.Controls.Image
             $img.Source = $bitmapImage
-            $img.Height = 30
-            $img.Width  = 50
-            [System.Windows.Controls.Canvas]::SetLeft($img, $canvasW - 60)
-            [System.Windows.Controls.Canvas]::SetTop($img, $canvasH - 38)
+            $img.Height = $logoH
+            $img.Width  = $logoW
+            [System.Windows.Controls.Canvas]::SetLeft($img, $offsetX + $contentX + $contentW - $logoW - 6)
+            [System.Windows.Controls.Canvas]::SetTop($img, $offsetY + $contentY + $contentH - $logoH - 4)
             $canvasPreview.Children.Add($img) | Out-Null
         } catch { }
     }
 
-    # Größenangabe
+    # Größenangabe (außerhalb des Etiketts, unterhalb)
     $sizeText = New-Object System.Windows.Controls.TextBlock
     $sizeText.Text       = "$($txtLabelWidth.Text) x $($txtLabelHeight.Text) cm"
-    $sizeText.Foreground = [System.Windows.Media.Brushes]::LightGray
-    $sizeText.FontSize   = 8
+    $sizeText.Foreground = [System.Windows.Media.Brushes]::Gray
+    $sizeText.FontSize   = 9
     $sizeText.FontStyle  = [System.Windows.FontStyles]::Italic
-    [System.Windows.Controls.Canvas]::SetLeft($sizeText, $canvasW - 80)
-    [System.Windows.Controls.Canvas]::SetTop($sizeText, $canvasH - 14)
+    $sizeText.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
+    [System.Windows.Controls.Canvas]::SetLeft($sizeText, $offsetX + ($cW - $sizeText.DesiredSize.Width) / 2)
+    [System.Windows.Controls.Canvas]::SetTop($sizeText, $offsetY + $cH + 2)
     $canvasPreview.Children.Add($sizeText) | Out-Null
 }
 
@@ -827,10 +955,21 @@ $btnPrint.Add_Click({
     Save-AppConfig $script:Config
 
     # Druckmaße berechnen (cm → 1/100 Zoll, 1cm = 0.3937 Zoll)
-    $labelWcm = [double]::Parse($txtLabelWidth.Text.Replace(",", "."),  [System.Globalization.CultureInfo]::InvariantCulture)
-    $labelHcm = [double]::Parse($txtLabelHeight.Text.Replace(",", "."), [System.Globalization.CultureInfo]::InvariantCulture)
+    $labelWcm = Parse-LocaleNumber $txtLabelWidth.Text
+    $labelHcm = Parse-LocaleNumber $txtLabelHeight.Text
     $labelW100 = [int]($labelWcm * 0.3937 * 100)
     $labelH100 = [int]($labelHcm * 0.3937 * 100)
+
+    # Konfigurierbare Werte erfassen
+    try { $paddingMm = Parse-LocaleNumber $txtPaddingMm.Text } catch { $paddingMm = 0 }
+    try { $headerPct = Parse-LocaleNumber $txtHeaderPercent.Text } catch { $headerPct = 22 }
+    try { $logoPct   = Parse-LocaleNumber $txtLogoPercent.Text } catch { $logoPct = 22 }
+    if ($paddingMm -lt 0) { $paddingMm = 0 }
+    if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
+    if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
+
+    # Padding in 1/100 Zoll (mm → 1/100 inch: mm / 25.4 * 100)
+    $pad100 = [int]($paddingMm / 25.4 * 100)
 
     foreach ($devName in $devicesToPrint) {
         $printDoc = New-Object System.Drawing.Printing.PrintDocument
@@ -838,48 +977,76 @@ $btnPrint.Add_Click({
         $printDoc.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize("Label", $labelW100, $labelH100)
         $printDoc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 
-        $currentDevName = $devName
-        $currentOrgName = $txtOrgName.Text
-        $currentDate    = $txtDate.Text
-        $currentLogo    = $txtLogoPath.Text
+        $currentDevName  = $devName
+        $currentOrgName  = $txtOrgName.Text
+        $currentDate     = $txtDate.Text
+        $currentLogo     = $txtLogoPath.Text
+        $currentPad      = $pad100
+        $currentHeaderPct = $headerPct
+        $currentLogoPct  = $logoPct
 
         $printDoc.Add_PrintPage({
             param($sender, $e)
             $g = $e.Graphics
-            $w = $e.PageBounds.Width
-            $h = $e.PageBounds.Height
+            $pageW = $e.PageBounds.Width
+            $pageH = $e.PageBounds.Height
 
-            # Rahmen
+            # Inhaltsbereich nach Padding
+            $cx = $currentPad
+            $cy = $currentPad
+            $w  = $pageW - 2 * $currentPad
+            $h  = $pageH - 2 * $currentPad
+            if ($w -lt 10) { $w = 10 }
+            if ($h -lt 10) { $h = 10 }
+
+            # Rahmen um den Inhaltsbereich
             $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Black, 1)
-            $g.DrawRectangle($pen, 1, 1, $w - 3, $h - 3)
+            $g.DrawRectangle($pen, $cx, $cy, $w - 1, $h - 1)
 
             # Oberer Balken
-            $headerH = [int]($h * 0.22)
-            $g.FillRectangle([System.Drawing.Brushes]::Black, 0, 0, $w, $headerH)
+            $headerH = [int]($h * $currentHeaderPct / 100)
+            $g.FillRectangle([System.Drawing.Brushes]::Black, $cx, $cy, $w, $headerH)
 
             # Org-Name im Balken
             $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45), [System.Drawing.FontStyle]::Bold)
             $orgSize = $g.MeasureString($currentOrgName, $orgFont)
             $g.DrawString($currentOrgName, $orgFont, [System.Drawing.Brushes]::White,
-                [int](($w - $orgSize.Width) / 2), [int](($headerH - $orgSize.Height) / 2))
+                [int]($cx + ($w - $orgSize.Width) / 2), [int]($cy + ($headerH - $orgSize.Height) / 2))
 
-            # Gerätename mittig
-            $devFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(8, $h * 0.12), [System.Drawing.FontStyle]::Bold)
+            # Gerätename mittig mit Auto-Shrink
+            $devFontSize = [Math]::Max(8, $h * 0.12)
+            $devFont = New-Object System.Drawing.Font("Segoe UI", $devFontSize, [System.Drawing.FontStyle]::Bold)
             $devSize = $g.MeasureString($currentDevName, $devFont)
+            $devAvailW = $w - 10
+            while ($devSize.Width -gt $devAvailW -and $devFontSize -gt 5) {
+                $devFontSize = $devFontSize * 0.9
+                $devFont.Dispose()
+                $devFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $devFontSize), [System.Drawing.FontStyle]::Bold)
+                $devSize = $g.MeasureString($currentDevName, $devFont)
+            }
+
+            # Vertikale Zentrierung im mittleren Bereich (zwischen Header und Fußzeile)
+            $footerH = [int]($h * $currentLogoPct / 100)
+            $middleTop = $cy + $headerH
+            $middleH = $h - $headerH - $footerH
             $g.DrawString($currentDevName, $devFont, [System.Drawing.Brushes]::Black,
-                [int](($w - $devSize.Width) / 2), [int](($h - $devSize.Height) / 2))
+                [int]($cx + ($w - $devSize.Width) / 2), [int]($middleTop + ($middleH - $devSize.Height) / 2))
+            $devFont.Dispose()
 
             # Datum links unten
             $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08))
-            $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray, 6, $h - 18)
+            $dateSize = $g.MeasureString($currentDate, $dateFont)
+            $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray,
+                $cx + 6, [int]($cy + $h - $dateSize.Height - 4))
+            $dateFont.Dispose()
 
             # Logo rechts unten
             if ($currentLogo -and (Test-Path $currentLogo)) {
                 try {
                     $logo = [System.Drawing.Image]::FromFile($currentLogo)
-                    $logoH = [int]($h * 0.22)
+                    $logoH = $footerH
                     $logoW = [int]($logoH * ($logo.Width / $logo.Height))
-                    $g.DrawImage($logo, $w - $logoW - 6, $h - $logoH - 4, $logoW, $logoH)
+                    $g.DrawImage($logo, [int]($cx + $w - $logoW - 6), [int]($cy + $h - $logoH - 4), $logoW, $logoH)
                     $logo.Dispose()
                 } catch { }
             }
@@ -898,10 +1065,13 @@ $btnPrint.Add_Click({
 
 # --- Einstellungen speichern ---
 $btnSettings.Add_Click({
-    $script:Config.LabelWidthCm  = [double]::Parse($txtLabelWidth.Text.Replace(",", "."),  [System.Globalization.CultureInfo]::InvariantCulture)
-    $script:Config.LabelHeightCm = [double]::Parse($txtLabelHeight.Text.Replace(",", "."), [System.Globalization.CultureInfo]::InvariantCulture)
-    $script:Config.LogoPath      = $txtLogoPath.Text
-    $script:Config.LastPrinter   = $cbPrinter.SelectedItem
+    $script:Config.LabelWidthCm       = Parse-LocaleNumber $txtLabelWidth.Text
+    $script:Config.LabelHeightCm      = Parse-LocaleNumber $txtLabelHeight.Text
+    $script:Config.PaddingMm           = Parse-LocaleNumber $txtPaddingMm.Text
+    $script:Config.HeaderHeightPercent = Parse-LocaleNumber $txtHeaderPercent.Text
+    $script:Config.LogoHeightPercent   = Parse-LocaleNumber $txtLogoPercent.Text
+    $script:Config.LogoPath            = $txtLogoPath.Text
+    $script:Config.LastPrinter         = $cbPrinter.SelectedItem
     Save-AppConfig $script:Config
     [System.Windows.MessageBox]::Show("Einstellungen gespeichert!", "OK", "OK", "Information")
 })
