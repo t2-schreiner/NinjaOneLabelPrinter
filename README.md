@@ -18,6 +18,7 @@ Ein PowerShell-basiertes WPF-Tool zum Drucken von Asset-Etiketten für Geräte, 
 - [Etiketten konfigurieren](#etiketten-konfigurieren)
 - [Drucken](#drucken)
 - [Einstellungen & Konfigurationsdatei](#einstellungen--konfigurationsdatei)
+- [Sicherheitskonzept](#sicherheitskonzept)
 - [Häufige Probleme](#häufige-probleme)
 
 ---
@@ -35,6 +36,9 @@ Der **NinjaOne Asset Label Printer** verbindet sich über die NinjaOne REST API 
 - 🖨 Direktdruck auf beliebige Windows-Drucker (inkl. Etikettendrucker)
 - 📐 Frei konfigurierbares Etikettenformat (Breite × Höhe in cm)
 - 💾 Persistente Einstellungen (API-Credentials, Drucker, Maße, Logo)
+- 🔐 AES-256-Verschlüsselung der API-Zugangsdaten mit Master-Passwort
+- 🔑 PBKDF2-SHA256 Schlüsselableitung (100 000 Iterationen)
+- 🔄 Zurücksetzen-Funktion bei vergessenem Master-Passwort
 - 🖼 Eigenes Firmenlogo auf dem Etikett
 
 ---
@@ -45,7 +49,7 @@ Der **NinjaOne Asset Label Printer** verbindet sich über die NinjaOne REST API 
 |---|---|
 | **Windows** | Windows 10 / Windows Server 2016 oder neuer |
 | **PowerShell** | Version 5.1 oder neuer |
-| **.NET Framework** | 4.5+ (WPF-Unterstützung) – bei Windows 10 bereits enthalten |
+| **.NET Framework** | 4.7.2+ (WPF-Unterstützung + moderne Kryptografie) – bei Windows 10 (1803+) bereits enthalten |
 | **NinjaOne-Konto** | Zugang zum NinjaOne-Portal mit Berechtigung zur API-Nutzung |
 | **Drucker** | Beliebiger lokal installierter Windows-Drucker (z. B. Brother QL-Serie, Zebra, etc.) |
 
@@ -94,15 +98,18 @@ Das Tool nutzt OAuth2 mit dem **Client Credentials Grant** – Sie benötigen da
 .\NinjaOneLabelPrinter.ps1
 ```
 
-Beim **ersten Start** erscheint nach Klick auf „Mit NinjaOne verbinden" automatisch ein Einstellungsdialog, in dem Sie folgende Angaben eintragen:
+Beim **ersten Start** erscheint nach Klick auf „Mit NinjaOne verbinden" ein Einrichtungsdialog, in dem Sie folgende Angaben eintragen:
 
 | Feld | Beschreibung |
 |---|---|
+| **Master-Passwort** | Frei wählbares Passwort (min. 8 Zeichen), das zum Verschlüsseln der API-Zugangsdaten verwendet wird. |
 | **Base URL** | API-Endpunkt Ihrer NinjaOne-Instanz (z. B. `https://eu.ninjarmm.com`) |
 | **Client ID** | OAuth2 Client ID der angelegten API-Applikation |
 | **Client Secret** | OAuth2 Client Secret der angelegten API-Applikation |
 
-Die Zugangsdaten werden lokal in der [Konfigurationsdatei](#einstellungen--konfigurationsdatei) gespeichert.
+Die Zugangsdaten werden **AES-256-verschlüsselt** in der [Konfigurationsdatei](#einstellungen--konfigurationsdatei) gespeichert.
+
+Bei jedem weiteren Start werden Sie beim Verbinden nach dem **Master-Passwort** gefragt, um die Zugangsdaten zu entschlüsseln.
 
 ---
 
@@ -146,6 +153,8 @@ Das Fenster ist in **drei Spalten** unterteilt:
 | **🔄 Vorschau aktualisieren** | Aktualisiert die Vorschau manuell. |
 | **🖨 Etikett(en) drucken** | Druckt für jedes ausgewählte Gerät ein Etikett. |
 | **💾 Einstellungen speichern** | Speichert Etikettengröße, Logo-Pfad und ausgewählten Drucker in der Konfigurationsdatei. |
+| **🔑 Master-Passwort ändern** | Ermöglicht das Ändern des Master-Passworts. Die Zugangsdaten werden mit dem neuen Passwort neu verschlüsselt. |
+| **🔄 Zugangsdaten zurücksetzen** | Löscht alle gespeicherten API-Zugangsdaten und das Master-Passwort. Nützlich, wenn das Master-Passwort vergessen wurde. |
 
 ---
 
@@ -205,26 +214,61 @@ Beispielinhalt der `config.json`:
 ```json
 {
   "NinjaBaseUrl": "https://eu.ninjarmm.com",
-  "ClientId": "your-client-id",
-  "ClientSecret": "your-client-secret",
   "LastPrinter": "Brother QL-820NWB",
   "LabelWidthCm": 4.0,
   "LabelHeightCm": 2.5,
-  "LogoPath": "C:\\Users\\User\\Pictures\\logo.png"
+  "LogoPath": "C:\\Users\\User\\Pictures\\logo.png",
+  "EncryptedClientId": "base64-verschlüsselter-Wert...",
+  "EncryptedClientSecret": "base64-verschlüsselter-Wert...",
+  "MasterPasswordVerifier": "base64-Verifier..."
 }
 ```
 
 | Schlüssel | Beschreibung |
 |---|---|
 | `NinjaBaseUrl` | API-Basis-URL der NinjaOne-Instanz |
-| `ClientId` | OAuth2 Client ID |
-| `ClientSecret` | OAuth2 Client Secret |
+| `EncryptedClientId` | AES-256-verschlüsselte OAuth2 Client ID (Base64-kodiert: Salt + IV + Ciphertext) |
+| `EncryptedClientSecret` | AES-256-verschlüsseltes OAuth2 Client Secret (Base64-kodiert: Salt + IV + Ciphertext) |
+| `MasterPasswordVerifier` | PBKDF2-SHA256-Hash zur Verifizierung des Master-Passworts (Base64-kodiert: Salt + Hash) |
 | `LastPrinter` | Name des zuletzt verwendeten Druckers |
 | `LabelWidthCm` | Etikettenbreite in cm |
 | `LabelHeightCm` | Etikettenhöhe in cm |
 | `LogoPath` | Absoluter Pfad zur Logo-Bilddatei |
 
-> **Sicherheitshinweis:** Die Konfigurationsdatei enthält das Client Secret im Klartext. Stellen Sie sicher, dass der Zugriff auf `%APPDATA%\NinjaOneLabelPrinter\` auf den jeweiligen Benutzer beschränkt bleibt.
+> **Sicherheitshinweis:** Die API-Zugangsdaten (Client ID und Client Secret) werden mit **AES-256-CBC** verschlüsselt gespeichert. Der Verschlüsselungsschlüssel wird mittels **PBKDF2-HMAC-SHA256** (100 000 Iterationen) aus dem Master-Passwort abgeleitet. Jeder Speichervorgang verwendet einen zufälligen Salt und IV.
+
+---
+
+## Sicherheitskonzept
+
+### Verschlüsselung
+
+Die API-Zugangsdaten werden **niemals im Klartext** auf der Festplatte gespeichert. Stattdessen werden sie durch folgende Verfahren geschützt:
+
+| Komponente | Verfahren |
+|---|---|
+| **Verschlüsselung** | AES-256-CBC mit zufälligem IV pro Speichervorgang |
+| **Schlüsselableitung** | PBKDF2-HMAC-SHA256, 100 000 Iterationen, 32 Byte Salt |
+| **Passwort-Verifier** | PBKDF2-HMAC-SHA256-Hash (getrennt von Verschlüsselungsschlüssel) |
+| **Vergleich** | Constant-Time-Vergleich zum Schutz gegen Timing-Angriffe |
+
+### Master-Passwort
+
+- Das Master-Passwort muss **mindestens 8 Zeichen** lang sein.
+- Es wird **nicht** gespeichert – nur ein kryptografischer Verifier (PBKDF2-Hash).
+- Zum Ändern des Master-Passworts: **🔑 Master-Passwort ändern** in der rechten Spalte.
+
+### Zurücksetzen bei vergessenem Master-Passwort
+
+Falls das Master-Passwort vergessen wurde, können die Zugangsdaten **nicht** wiederhergestellt werden (dies ist beabsichtigt). Stattdessen:
+
+1. Klicken Sie auf **🔄 Zugangsdaten zurücksetzen** (rechte Spalte) oder im Entsperr-Dialog auf **🔄 Zurücksetzen**.
+2. Alle verschlüsselten Zugangsdaten werden unwiderruflich gelöscht.
+3. Geben Sie beim nächsten Verbinden ein neues Master-Passwort und Ihre API-Zugangsdaten ein.
+
+### Legacy-Migration
+
+Wenn Sie von einer älteren Version ohne Verschlüsselung upgraden, erkennt das Tool automatisch die unverschlüsselten Zugangsdaten und fordert Sie beim nächsten Verbinden auf, ein Master-Passwort festzulegen. Die bestehenden Zugangsdaten werden dann verschlüsselt gespeichert.
 
 ---
 
@@ -233,6 +277,7 @@ Beispielinhalt der `config.json`:
 | Problem | Lösung |
 |---|---|
 | „Verbindung fehlgeschlagen" | Prüfen Sie Base URL, Client ID und Client Secret. Stellen Sie sicher, dass die API-App in NinjaOne aktiv ist und die Scopes `monitoring` und `management` hat. |
+| Master-Passwort vergessen | Klicken Sie im Entsperr-Dialog auf **🔄 Zurücksetzen** oder verwenden Sie den Button **🔄 Zugangsdaten zurücksetzen** in der rechten Spalte. Alle gespeicherten Zugangsdaten werden gelöscht und müssen neu eingegeben werden. |
 | Keine Drucker in der Liste | Stellen Sie sicher, dass Windows-Drucker lokal installiert (nicht nur als „Netzwerkfreigabe ohne Treiber") vorhanden sind. |
 | Etikett wird nicht korrekt skaliert | Passen Sie die Etikettenmaße in cm genau an den physischen Etiketten Ihres Druckers an. |
 | Skript startet nicht | Prüfen Sie die PowerShell-Ausführungsrichtlinie: `Get-ExecutionPolicy -Scope CurrentUser` – muss `RemoteSigned` oder `Unrestricted` sein. |

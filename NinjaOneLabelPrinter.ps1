@@ -11,31 +11,162 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 
+# --- Kryptografie-Funktionen (AES-256 + PBKDF2) ---
+
+function Protect-String {
+    param([string]$PlainText, [string]$MasterPassword)
+    $salt = New-Object byte[] 32
+    $iv   = New-Object byte[] 16
+    $rng  = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create()
+    $rng.GetBytes($salt); $rng.GetBytes($iv); $rng.Dispose()
+
+    $kdf = New-Object System.Security.Cryptography.Rfc2898DeriveBytes(
+        $MasterPassword, $salt, 100000, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+    $key = $kdf.GetBytes(32); $kdf.Dispose()
+
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $key; $aes.IV = $iv
+    $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+    $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+    $enc = $aes.CreateEncryptor()
+    $plain = [System.Text.Encoding]::UTF8.GetBytes($PlainText)
+    $cipher = $enc.TransformFinalBlock($plain, 0, $plain.Length)
+    $enc.Dispose(); $aes.Dispose()
+
+    $combined = New-Object byte[] (32 + 16 + $cipher.Length)
+    [Array]::Copy($salt, 0, $combined, 0, 32)
+    [Array]::Copy($iv,   0, $combined, 32, 16)
+    [Array]::Copy($cipher, 0, $combined, 48, $cipher.Length)
+
+    [Array]::Clear($key, 0, $key.Length)
+    [Array]::Clear($plain, 0, $plain.Length)
+    return [Convert]::ToBase64String($combined)
+}
+
+function Unprotect-String {
+    param([string]$CipherText, [string]$MasterPassword)
+    $combined = [Convert]::FromBase64String($CipherText)
+
+    $salt   = New-Object byte[] 32
+    $iv     = New-Object byte[] 16
+    $cipher = New-Object byte[] ($combined.Length - 48)
+    [Array]::Copy($combined, 0,  $salt,   0, 32)
+    [Array]::Copy($combined, 32, $iv,     0, 16)
+    [Array]::Copy($combined, 48, $cipher, 0, $cipher.Length)
+
+    $kdf = New-Object System.Security.Cryptography.Rfc2898DeriveBytes(
+        $MasterPassword, $salt, 100000, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+    $key = $kdf.GetBytes(32); $kdf.Dispose()
+
+    $aes = [System.Security.Cryptography.Aes]::Create()
+    $aes.Key = $key; $aes.IV = $iv
+    $aes.Mode = [System.Security.Cryptography.CipherMode]::CBC
+    $aes.Padding = [System.Security.Cryptography.PaddingMode]::PKCS7
+    $dec = $aes.CreateDecryptor()
+    $plain = $dec.TransformFinalBlock($cipher, 0, $cipher.Length)
+    $dec.Dispose(); $aes.Dispose()
+
+    $result = [System.Text.Encoding]::UTF8.GetString($plain)
+    [Array]::Clear($key, 0, $key.Length)
+    [Array]::Clear($plain, 0, $plain.Length)
+    return $result
+}
+
+function New-MasterPasswordVerifier {
+    param([string]$MasterPassword)
+    $salt = New-Object byte[] 32
+    $rng = [System.Security.Cryptography.RNGCryptoServiceProvider]::Create()
+    $rng.GetBytes($salt); $rng.Dispose()
+    $kdf = New-Object System.Security.Cryptography.Rfc2898DeriveBytes(
+        $MasterPassword, $salt, 100000, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+    $hash = $kdf.GetBytes(32); $kdf.Dispose()
+    $combined = New-Object byte[] 64
+    [Array]::Copy($salt, 0, $combined, 0, 32)
+    [Array]::Copy($hash, 0, $combined, 32, 32)
+    [Array]::Clear($hash, 0, $hash.Length)
+    return [Convert]::ToBase64String($combined)
+}
+
+function Test-MasterPassword {
+    param([string]$MasterPassword, [string]$Verifier)
+    $combined   = [Convert]::FromBase64String($Verifier)
+    $salt       = New-Object byte[] 32
+    $storedHash = New-Object byte[] 32
+    [Array]::Copy($combined, 0,  $salt,       0, 32)
+    [Array]::Copy($combined, 32, $storedHash, 0, 32)
+    $kdf = New-Object System.Security.Cryptography.Rfc2898DeriveBytes(
+        $MasterPassword, $salt, 100000, [System.Security.Cryptography.HashAlgorithmName]::SHA256)
+    $computed = $kdf.GetBytes(32); $kdf.Dispose()
+    # Constant-time comparison
+    $diff = 0
+    for ($i = 0; $i -lt 32; $i++) { $diff = $diff -bor ($storedHash[$i] -bxor $computed[$i]) }
+    [Array]::Clear($computed, 0, $computed.Length)
+    return ($diff -eq 0)
+}
+
 # --- Konfigurationsverwaltung ---
 $configDir  = Join-Path $env:APPDATA "NinjaOneLabelPrinter"
 $configFile = Join-Path $configDir "config.json"
 
 function Get-AppConfig {
+    $defaults = [PSCustomObject]@{
+        NinjaBaseUrl           = "https://eu.ninjarmm.com"
+        ClientId               = ""
+        ClientSecret           = ""
+        LastPrinter            = ""
+        LabelWidthCm           = 4.0
+        LabelHeightCm          = 2.5
+        LogoPath               = ""
+        EncryptedClientId      = ""
+        EncryptedClientSecret  = ""
+        MasterPasswordVerifier = ""
+    }
     if (Test-Path $configFile) {
-        return Get-Content $configFile -Raw | ConvertFrom-Json
+        $raw = Get-Content $configFile -Raw | ConvertFrom-Json
+        foreach ($prop in $raw.PSObject.Properties) {
+            if ($defaults.PSObject.Properties[$prop.Name]) {
+                $defaults.$($prop.Name) = $prop.Value
+            }
+        }
+        # Legacy plaintext credentials: keep for migration prompt
+        if ($raw.PSObject.Properties['ClientId'] -and $raw.ClientId -and
+            (-not $raw.PSObject.Properties['EncryptedClientId'] -or -not $raw.EncryptedClientId)) {
+            $defaults.ClientId     = $raw.ClientId
+            $defaults.ClientSecret = $raw.ClientSecret
+        }
     }
-    return [PSCustomObject]@{
-        NinjaBaseUrl   = "https://eu.ninjarmm.com"   # oder app.ninjarmm.com
-        ClientId       = ""
-        ClientSecret   = ""
-        LastPrinter    = ""
-        LabelWidthCm  = 4.0
-        LabelHeightCm = 2.5
-        LogoPath       = ""
-    }
+    return $defaults
 }
 
 function Save-AppConfig($cfg) {
     if (!(Test-Path $configDir)) { New-Item -ItemType Directory -Path $configDir -Force | Out-Null }
-    $cfg | ConvertTo-Json -Depth 5 | Set-Content $configFile -Encoding UTF8
+    # Build disk representation – sensitive fields are always encrypted, never plaintext
+    $diskConfig = [ordered]@{
+        NinjaBaseUrl           = $cfg.NinjaBaseUrl
+        LastPrinter            = $cfg.LastPrinter
+        LabelWidthCm           = $cfg.LabelWidthCm
+        LabelHeightCm          = $cfg.LabelHeightCm
+        LogoPath               = $cfg.LogoPath
+        EncryptedClientId      = ""
+        EncryptedClientSecret  = ""
+        MasterPasswordVerifier = ""
+    }
+    if ($script:MasterPassword) {
+        if ($cfg.ClientId)     { $diskConfig.EncryptedClientId     = Protect-String -PlainText $cfg.ClientId     -MasterPassword $script:MasterPassword }
+        if ($cfg.ClientSecret) { $diskConfig.EncryptedClientSecret = Protect-String -PlainText $cfg.ClientSecret -MasterPassword $script:MasterPassword }
+        if ($script:MasterPasswordVerifier) {
+            $diskConfig.MasterPasswordVerifier = $script:MasterPasswordVerifier
+        } else {
+            $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $script:MasterPassword
+            $diskConfig.MasterPasswordVerifier = $script:MasterPasswordVerifier
+        }
+    }
+    [PSCustomObject]$diskConfig | ConvertTo-Json -Depth 5 | Set-Content $configFile -Encoding UTF8
 }
 
 $script:Config = Get-AppConfig
+$script:MasterPassword         = $null
+$script:MasterPasswordVerifier = $null
 
 # --- NinjaOne API Helfer ---
 $script:AccessToken = $null
@@ -240,6 +371,10 @@ function Get-NinjaAllDevicesDetailed {
                             Style="{StaticResource ActionButton}" Background="#2ea043"/>
                     <Button Name="btnSettings" Content="💾 Einstellungen speichern"
                             Style="{StaticResource ActionButton}" Background="#666680" Margin="0,6,0,0"/>
+                    <Button Name="btnChangePw" Content="🔑 Master-Passwort ändern"
+                            Style="{StaticResource ActionButton}" Background="#666680" Margin="0,6,0,0"/>
+                    <Button Name="btnReset" Content="🔄 Zugangsdaten zurücksetzen"
+                            Style="{StaticResource ActionButton}" Background="#cc3333" Margin="0,6,0,0"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -267,6 +402,8 @@ $canvasPreview    = $window.FindName("canvasPreview")
 $btnPreview       = $window.FindName("btnPreview")
 $btnPrint         = $window.FindName("btnPrint")
 $btnSettings      = $window.FindName("btnSettings")
+$btnChangePw      = $window.FindName("btnChangePw")
+$btnReset         = $window.FindName("btnReset")
 
 # --- Initialisierung ---
 $txtDate.Text = (Get-Date).ToString("MM/yyyy")
@@ -290,38 +427,152 @@ $script:OrgLookup     = @{}
 
 # --- Verbindung herstellen ---
 $btnConnect.Add_Click({
-    # Einfacher Settings-Dialog wenn noch keine Credentials da sind
-    if (-not $script:Config.ClientId -or -not $script:Config.ClientSecret) {
-        $settingsXaml = @"
+
+    # ── Step 1: Ensure decrypted credentials are available ──────────────
+
+    # Case A – Encrypted credentials on disk, not yet unlocked
+    if ((-not $script:Config.ClientId -or -not $script:Config.ClientSecret) -and
+        $script:Config.MasterPasswordVerifier -and $script:Config.EncryptedClientId) {
+
+        $mpXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="NinjaOne API Einstellungen" Height="280" Width="420"
-        WindowStartupLocation="CenterOwner" Background="#1e1e2e">
-    <StackPanel Margin="16">
-        <TextBlock Text="Base URL:" Foreground="White" FontSize="12"/>
-        <TextBox Name="sBaseUrl" Background="#2a2a3d" Foreground="White" Padding="4" Margin="0,2,0,8"/>
-        <TextBlock Text="Client ID:" Foreground="White" FontSize="12"/>
-        <TextBox Name="sClientId" Background="#2a2a3d" Foreground="White" Padding="4" Margin="0,2,0,8"/>
-        <TextBlock Text="Client Secret:" Foreground="White" FontSize="12"/>
-        <PasswordBox Name="sClientSecret" Background="#2a2a3d" Foreground="White" Padding="4" Margin="0,2,0,8"/>
-        <Button Name="sSave" Content="Verbinden" Background="#5865f2" Foreground="White"
-                FontSize="12" Padding="10,5" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+        Title="🔒 Master-Passwort" Height="190" Width="420"
+        WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
+    <StackPanel Margin="20">
+        <TextBlock Text="Master-Passwort eingeben:" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <PasswordBox Name="mpPassword" Background="#2a2a3d" Foreground="White" Padding="6" FontSize="13" Margin="0,0,0,14"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Name="mpReset" Content="🔄 Zurücksetzen" Background="#cc3333" Foreground="White"
+                    FontSize="12" Padding="12,6" Margin="0,0,8,0" Cursor="Hand" BorderThickness="0"/>
+            <Button Name="mpUnlock" Content="🔓 Entsperren" Background="#5865f2" Foreground="White"
+                    FontSize="12" Padding="12,6" Cursor="Hand" BorderThickness="0"/>
+        </StackPanel>
     </StackPanel>
 </Window>
 "@
-        $sr = New-Object System.Xml.XmlNodeReader ([xml]$settingsXaml)
-        $sw = [Windows.Markup.XamlReader]::Load($sr)
-        $sw.FindName("sBaseUrl").Text = $script:Config.NinjaBaseUrl
-        $sw.FindName("sClientId").Text = $script:Config.ClientId
-        $sw.FindName("sClientSecret").Password = $script:Config.ClientSecret
-        $sw.FindName("sSave").Add_Click({
-            $script:Config.NinjaBaseUrl  = $sw.FindName("sBaseUrl").Text
-            $script:Config.ClientId      = $sw.FindName("sClientId").Text
-            $script:Config.ClientSecret  = $sw.FindName("sClientSecret").Password
-            Save-AppConfig $script:Config
-            $sw.DialogResult = $true
-            $sw.Close()
+        $mr = New-Object System.Xml.XmlNodeReader ([xml]$mpXaml)
+        $mw = [Windows.Markup.XamlReader]::Load($mr)
+        $mw.Owner = $window
+
+        $mw.FindName("mpUnlock").Add_Click({
+            $pw = $mw.FindName("mpPassword").Password
+            if (-not $pw) { [System.Windows.MessageBox]::Show("Bitte Passwort eingeben.", "Hinweis", "OK", "Warning"); return }
+            if (-not (Test-MasterPassword -MasterPassword $pw -Verifier $script:Config.MasterPasswordVerifier)) {
+                [System.Windows.MessageBox]::Show("Falsches Master-Passwort!", "Fehler", "OK", "Error"); return
+            }
+            try {
+                $script:Config.ClientId     = Unprotect-String -CipherText $script:Config.EncryptedClientId     -MasterPassword $pw
+                $script:Config.ClientSecret = Unprotect-String -CipherText $script:Config.EncryptedClientSecret -MasterPassword $pw
+                $script:MasterPassword         = $pw
+                $script:MasterPasswordVerifier = $script:Config.MasterPasswordVerifier
+                $mw.DialogResult = $true; $mw.Close()
+            } catch {
+                [System.Windows.MessageBox]::Show("Entschlüsselung fehlgeschlagen – Daten beschädigt?`n$($_.Exception.Message)", "Fehler", "OK", "Error")
+            }
         })
+
+        $mw.FindName("mpReset").Add_Click({
+            $answer = [System.Windows.MessageBox]::Show(
+                "Alle gespeicherten Zugangsdaten werden unwiderruflich gelöscht.`nFortfahren?",
+                "Zugangsdaten zurücksetzen", "YesNo", "Warning")
+            if ($answer -eq "Yes") {
+                $script:Config.ClientId = ""; $script:Config.ClientSecret = ""
+                $script:Config.EncryptedClientId = ""; $script:Config.EncryptedClientSecret = ""
+                $script:Config.MasterPasswordVerifier = ""
+                $script:MasterPassword = $null; $script:MasterPasswordVerifier = $null
+                Save-AppConfig $script:Config
+                $mw.DialogResult = $false; $mw.Close()
+            }
+        })
+
+        if (-not $mw.ShowDialog()) {
+            # After reset the user needs to re-enter credentials → fall through to Case C below
+            if ($script:Config.ClientId -and $script:Config.ClientSecret) { return }
+        }
+    }
+
+    # Case B – Legacy plaintext credentials (migration to encrypted storage)
+    if ($script:Config.ClientId -and $script:Config.ClientSecret -and -not $script:MasterPassword) {
+        $migrateXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        Title="🔐 Sicherheits-Upgrade" Height="260" Width="440"
+        WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
+    <StackPanel Margin="20">
+        <TextBlock Text="🔐 Master-Passwort festlegen" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock Text="Ihre API-Zugangsdaten werden künftig AES-256-verschlüsselt gespeichert."
+                   Foreground="#999" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <TextBlock Text="Master-Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="mMasterPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
+        <TextBlock Text="Master-Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="mMasterPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,12"/>
+        <Button Name="mSave" Content="🔒 Verschlüsseln" Background="#5865f2" Foreground="White"
+                FontSize="12" Padding="14,6" HorizontalAlignment="Right" Cursor="Hand" BorderThickness="0"/>
+    </StackPanel>
+</Window>
+"@
+        $mgr = New-Object System.Xml.XmlNodeReader ([xml]$migrateXaml)
+        $mgw = [Windows.Markup.XamlReader]::Load($mgr)
+        $mgw.Owner = $window
+        $mgw.FindName("mSave").Add_Click({
+            $p1 = $mgw.FindName("mMasterPw1").Password
+            $p2 = $mgw.FindName("mMasterPw2").Password
+            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
+            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Die Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+            $script:MasterPassword         = $p1
+            $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $p1
+            Save-AppConfig $script:Config
+            $mgw.DialogResult = $true; $mgw.Close()
+        })
+        if (-not $mgw.ShowDialog()) { return }
+    }
+
+    # Case C – No credentials at all → full setup dialog
+    if (-not $script:Config.ClientId -or -not $script:Config.ClientSecret) {
+        $setupXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        Title="NinjaOne API Einrichtung" Height="500" Width="440"
+        WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
+    <StackPanel Margin="20">
+        <TextBlock Text="🔐 Master-Passwort festlegen" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock Text="Dieses Passwort schützt Ihre API-Zugangsdaten (AES-256)."
+                   Foreground="#999" FontSize="11" Margin="0,0,0,8"/>
+        <TextBlock Text="Master-Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="sMasterPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
+        <TextBlock Text="Master-Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="sMasterPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,12"/>
+        <Separator Background="#444466" Margin="0,0,0,12"/>
+        <TextBlock Text="🔗 NinjaOne API Zugangsdaten" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+        <TextBlock Text="Base URL:" Foreground="White" FontSize="12"/>
+        <TextBox Name="sBaseUrl" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
+        <TextBlock Text="Client ID:" Foreground="White" FontSize="12"/>
+        <TextBox Name="sClientId" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
+        <TextBlock Text="Client Secret:" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="sClientSecret" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
+        <Button Name="sSave" Content="🔒 Verschlüsseln und Verbinden" Background="#5865f2" Foreground="White"
+                FontSize="12" Padding="14,6" HorizontalAlignment="Right" Margin="0,8,0,0" Cursor="Hand" BorderThickness="0"/>
+    </StackPanel>
+</Window>
+"@
+        $sr = New-Object System.Xml.XmlNodeReader ([xml]$setupXaml)
+        $sw = [Windows.Markup.XamlReader]::Load($sr)
         $sw.Owner = $window
+        $sw.FindName("sBaseUrl").Text = $script:Config.NinjaBaseUrl
+        $sw.FindName("sSave").Add_Click({
+            $p1 = $sw.FindName("sMasterPw1").Password
+            $p2 = $sw.FindName("sMasterPw2").Password
+            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
+            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Die Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+            $cid = $sw.FindName("sClientId").Text.Trim()
+            $csec = $sw.FindName("sClientSecret").Password
+            if (-not $cid -or -not $csec) { [System.Windows.MessageBox]::Show("Client ID und Client Secret sind erforderlich.", "Hinweis", "OK", "Warning"); return }
+            $script:Config.NinjaBaseUrl  = $sw.FindName("sBaseUrl").Text.Trim()
+            $script:Config.ClientId      = $cid
+            $script:Config.ClientSecret  = $csec
+            $script:MasterPassword         = $p1
+            $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $p1
+            Save-AppConfig $script:Config
+            $sw.DialogResult = $true; $sw.Close()
+        })
         if (-not $sw.ShowDialog()) { return }
     }
 
@@ -626,6 +877,67 @@ $btnSettings.Add_Click({
     $script:Config.LastPrinter   = $cbPrinter.SelectedItem
     Save-AppConfig $script:Config
     [System.Windows.MessageBox]::Show("Einstellungen gespeichert!", "OK", "OK", "Information")
+})
+
+# --- Zugangsdaten zurücksetzen ---
+$btnReset.Add_Click({
+    $answer = [System.Windows.MessageBox]::Show(
+        "Alle gespeicherten API-Zugangsdaten und das Master-Passwort werden unwiderruflich gelöscht.`nFortfahren?",
+        "Zugangsdaten zurücksetzen", "YesNo", "Warning")
+    if ($answer -ne "Yes") { return }
+    $script:Config.ClientId = ""; $script:Config.ClientSecret = ""
+    $script:Config.EncryptedClientId = ""; $script:Config.EncryptedClientSecret = ""
+    $script:Config.MasterPasswordVerifier = ""
+    $script:MasterPassword = $null; $script:MasterPasswordVerifier = $null
+    $script:AccessToken = $null
+    Save-AppConfig $script:Config
+    $tvOrganizations.Items.Clear()
+    $dgDevices.ItemsSource  = $null
+    $dgRecent.ItemsSource   = $null
+    [System.Windows.MessageBox]::Show("Zugangsdaten wurden gelöscht. Bitte erneut verbinden.", "Zurückgesetzt", "OK", "Information")
+})
+
+# --- Master-Passwort ändern ---
+$btnChangePw.Add_Click({
+    if (-not $script:MasterPassword) {
+        [System.Windows.MessageBox]::Show("Kein Master-Passwort gesetzt. Bitte zuerst verbinden.", "Hinweis", "OK", "Warning")
+        return
+    }
+    $cpXaml = @"
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        Title="🔑 Master-Passwort ändern" Height="300" Width="440"
+        WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
+    <StackPanel Margin="20">
+        <TextBlock Text="Aktuelles Passwort:" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="cpOldPw" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
+        <TextBlock Text="Neues Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="cpNewPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
+        <TextBlock Text="Neues Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <PasswordBox Name="cpNewPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,14"/>
+        <Button Name="cpSave" Content="🔑 Passwort ändern" Background="#5865f2" Foreground="White"
+                FontSize="12" Padding="14,6" HorizontalAlignment="Right" Cursor="Hand" BorderThickness="0"/>
+    </StackPanel>
+</Window>
+"@
+    $cpr = New-Object System.Xml.XmlNodeReader ([xml]$cpXaml)
+    $cpw = [Windows.Markup.XamlReader]::Load($cpr)
+    $cpw.Owner = $window
+    $cpw.FindName("cpSave").Add_Click({
+        $oldPw = $cpw.FindName("cpOldPw").Password
+        $newP1 = $cpw.FindName("cpNewPw1").Password
+        $newP2 = $cpw.FindName("cpNewPw2").Password
+        if ($oldPw -ne $script:MasterPassword) {
+            [System.Windows.MessageBox]::Show("Aktuelles Passwort ist falsch.", "Fehler", "OK", "Error"); return
+        }
+        if ($newP1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das neue Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
+        if ($newP1 -ne $newP2)  { [System.Windows.MessageBox]::Show("Die neuen Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+        $script:MasterPassword         = $newP1
+        $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $newP1
+        Save-AppConfig $script:Config
+        [System.Windows.MessageBox]::Show("Master-Passwort wurde erfolgreich geändert!", "Erfolg", "OK", "Information")
+        $cpw.DialogResult = $true; $cpw.Close()
+    })
+    $cpw.ShowDialog() | Out-Null
 })
 
 # --- Initiale Vorschau ---
