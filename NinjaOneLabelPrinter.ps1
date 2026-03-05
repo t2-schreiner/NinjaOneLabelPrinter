@@ -705,8 +705,8 @@ $btnSelectLogo.Add_Click({
     }
 })
 
-# --- Hilfsfunktion: Zahl parsen (Komma oder Punkt) ---
-function Parse-LocaleNumber([string]$Text) {
+# --- Hilfsfunktion: Zahl parsen (Komma oder Punkt → InvariantCulture) ---
+function Parse-NumberInvariant([string]$Text) {
     [double]::Parse($Text.Replace(",", "."), [System.Globalization.CultureInfo]::InvariantCulture)
 }
 
@@ -719,16 +719,16 @@ function Update-LabelPreview {
 
     # Etikettengröße parsen
     try {
-        $labelWcm = Parse-LocaleNumber $txtLabelWidth.Text
-        $labelHcm = Parse-LocaleNumber $txtLabelHeight.Text
+        $labelWcm = Parse-NumberInvariant $txtLabelWidth.Text
+        $labelHcm = Parse-NumberInvariant $txtLabelHeight.Text
     } catch { $labelWcm = 4.0; $labelHcm = 2.5 }
     if ($labelWcm -le 0) { $labelWcm = 4.0 }
     if ($labelHcm -le 0) { $labelHcm = 2.5 }
 
     # Einstellungen parsen
-    try { $paddingMm = Parse-LocaleNumber $txtPaddingMm.Text } catch { $paddingMm = 0 }
-    try { $headerPct = Parse-LocaleNumber $txtHeaderPercent.Text } catch { $headerPct = 22 }
-    try { $logoPct   = Parse-LocaleNumber $txtLogoPercent.Text } catch { $logoPct = 22 }
+    try { $paddingMm = Parse-NumberInvariant $txtPaddingMm.Text } catch { $paddingMm = 0 }
+    try { $headerPct = Parse-NumberInvariant $txtHeaderPercent.Text } catch { $headerPct = 22 }
+    try { $logoPct   = Parse-NumberInvariant $txtLogoPercent.Text } catch { $logoPct = 22 }
     if ($paddingMm -lt 0) { $paddingMm = 0 }
     if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
     if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
@@ -955,15 +955,15 @@ $btnPrint.Add_Click({
     Save-AppConfig $script:Config
 
     # Druckmaße berechnen (cm → 1/100 Zoll, 1cm = 0.3937 Zoll)
-    $labelWcm = Parse-LocaleNumber $txtLabelWidth.Text
-    $labelHcm = Parse-LocaleNumber $txtLabelHeight.Text
+    $labelWcm = Parse-NumberInvariant $txtLabelWidth.Text
+    $labelHcm = Parse-NumberInvariant $txtLabelHeight.Text
     $labelW100 = [int]($labelWcm * 0.3937 * 100)
     $labelH100 = [int]($labelHcm * 0.3937 * 100)
 
     # Konfigurierbare Werte erfassen
-    try { $paddingMm = Parse-LocaleNumber $txtPaddingMm.Text } catch { $paddingMm = 0 }
-    try { $headerPct = Parse-LocaleNumber $txtHeaderPercent.Text } catch { $headerPct = 22 }
-    try { $logoPct   = Parse-LocaleNumber $txtLogoPercent.Text } catch { $logoPct = 22 }
+    try { $paddingMm = Parse-NumberInvariant $txtPaddingMm.Text } catch { $paddingMm = 0 }
+    try { $headerPct = Parse-NumberInvariant $txtHeaderPercent.Text } catch { $headerPct = 22 }
+    try { $logoPct   = Parse-NumberInvariant $txtLogoPercent.Text } catch { $logoPct = 22 }
     if ($paddingMm -lt 0) { $paddingMm = 0 }
     if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
     if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
@@ -1009,9 +1009,11 @@ $btnPrint.Add_Click({
 
             # Org-Name im Balken
             $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45), [System.Drawing.FontStyle]::Bold)
-            $orgSize = $g.MeasureString($currentOrgName, $orgFont)
-            $g.DrawString($currentOrgName, $orgFont, [System.Drawing.Brushes]::White,
-                [int]($cx + ($w - $orgSize.Width) / 2), [int]($cy + ($headerH - $orgSize.Height) / 2))
+            try {
+                $orgSize = $g.MeasureString($currentOrgName, $orgFont)
+                $g.DrawString($currentOrgName, $orgFont, [System.Drawing.Brushes]::White,
+                    [int]($cx + ($w - $orgSize.Width) / 2), [int]($cy + ($headerH - $orgSize.Height) / 2))
+            } finally { $orgFont.Dispose() }
 
             # Gerätename mittig mit Auto-Shrink
             $devFontSize = [Math]::Max(8, $h * 0.12)
@@ -1029,16 +1031,18 @@ $btnPrint.Add_Click({
             $footerH = [int]($h * $currentLogoPct / 100)
             $middleTop = $cy + $headerH
             $middleH = $h - $headerH - $footerH
-            $g.DrawString($currentDevName, $devFont, [System.Drawing.Brushes]::Black,
-                [int]($cx + ($w - $devSize.Width) / 2), [int]($middleTop + ($middleH - $devSize.Height) / 2))
-            $devFont.Dispose()
+            try {
+                $g.DrawString($currentDevName, $devFont, [System.Drawing.Brushes]::Black,
+                    [int]($cx + ($w - $devSize.Width) / 2), [int]($middleTop + ($middleH - $devSize.Height) / 2))
+            } finally { $devFont.Dispose() }
 
             # Datum links unten
             $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08))
-            $dateSize = $g.MeasureString($currentDate, $dateFont)
-            $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray,
-                $cx + 6, [int]($cy + $h - $dateSize.Height - 4))
-            $dateFont.Dispose()
+            try {
+                $dateSize = $g.MeasureString($currentDate, $dateFont)
+                $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray,
+                    $cx + 6, [int]($cy + $h - $dateSize.Height - 4))
+            } finally { $dateFont.Dispose() }
 
             # Logo rechts unten
             if ($currentLogo -and (Test-Path $currentLogo)) {
@@ -1065,11 +1069,11 @@ $btnPrint.Add_Click({
 
 # --- Einstellungen speichern ---
 $btnSettings.Add_Click({
-    $script:Config.LabelWidthCm       = Parse-LocaleNumber $txtLabelWidth.Text
-    $script:Config.LabelHeightCm      = Parse-LocaleNumber $txtLabelHeight.Text
-    $script:Config.PaddingMm           = Parse-LocaleNumber $txtPaddingMm.Text
-    $script:Config.HeaderHeightPercent = Parse-LocaleNumber $txtHeaderPercent.Text
-    $script:Config.LogoHeightPercent   = Parse-LocaleNumber $txtLogoPercent.Text
+    $script:Config.LabelWidthCm       = Parse-NumberInvariant $txtLabelWidth.Text
+    $script:Config.LabelHeightCm      = Parse-NumberInvariant $txtLabelHeight.Text
+    $script:Config.PaddingMm           = Parse-NumberInvariant $txtPaddingMm.Text
+    $script:Config.HeaderHeightPercent = Parse-NumberInvariant $txtHeaderPercent.Text
+    $script:Config.LogoHeightPercent   = Parse-NumberInvariant $txtLogoPercent.Text
     $script:Config.LogoPath            = $txtLogoPath.Text
     $script:Config.LastPrinter         = $cbPrinter.SelectedItem
     Save-AppConfig $script:Config
