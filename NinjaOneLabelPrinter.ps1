@@ -613,17 +613,18 @@ $btnConnect.Add_Click({
     # Alle Geräte für "Zuletzt hinzugefügt" laden
     try {
         $script:AllDevices = @(Get-NinjaAllDevicesDetailed)
-        $recentDevices = @($script:AllDevices |
+        $recentRaw = @($script:AllDevices |
             Sort-Object { $_.id } -Descending |
-            Select-Object -First 20 |
-            ForEach-Object {
-                [PSCustomObject]@{
-                    SystemName = $_.systemName
-                    OrgName    = if ($script:OrgLookup.ContainsKey($_.organizationId)) { $script:OrgLookup[$_.organizationId] } else { "?" }
-                    Datum      = (Get-Date).ToString("dd.MM.yyyy")
-                    RawDevice  = $_
-                }
+            Select-Object -First 20)
+        $recentDevices = [System.Collections.ArrayList]::new()
+        foreach ($dev in $recentRaw) {
+            [void]$recentDevices.Add([PSCustomObject]@{
+                SystemName = [string]$dev.systemName
+                OrgName    = if ($script:OrgLookup.ContainsKey($dev.organizationId)) { $script:OrgLookup[$dev.organizationId] } else { "?" }
+                Datum      = (Get-Date).ToString("dd.MM.yyyy")
+                RawDevice  = $dev
             })
+        }
         $dgRecent.ItemsSource = $recentDevices
     } catch {
         # Fallback: Zuletzt-Liste leer lassen
@@ -644,15 +645,16 @@ $tvOrganizations.Add_SelectedItemChanged({
 
     try {
         $devices = @(Get-NinjaDevicesByOrg -OrgId $orgId)
-        $deviceList = @($devices | ForEach-Object {
-            [PSCustomObject]@{
-                SystemName = $_.systemName
-                NodeClass  = $_.nodeClass
-                OS         = Get-SafeOsName $_.os
+        $deviceList = [System.Collections.ArrayList]::new()
+        foreach ($dev in $devices) {
+            [void]$deviceList.Add([PSCustomObject]@{
+                SystemName = [string]$dev.systemName
+                NodeClass  = $dev.nodeClass
+                OS         = Get-SafeOsName $dev.os
                 Datum      = (Get-Date).ToString("dd.MM.yyyy")
-                RawDevice  = $_
-            }
-        })
+                RawDevice  = $dev
+            })
+        }
         $dgDevices.ItemsSource = $deviceList
     } catch {
         [System.Windows.MessageBox]::Show("Fehler beim Laden der Geräte:`n$($_.Exception.Message)", "Fehler", "OK", "Error")
@@ -724,7 +726,7 @@ function Update-LabelPreview {
     } elseif ($dgRecent.SelectedItems.Count -gt 0) {
         $selectedDevices = $dgRecent.SelectedItems
     }
-    $deviceName = if ($selectedDevices.Count -gt 0) { $selectedDevices[0].SystemName } else { "GERÄTENAME" }
+    $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "GERÄTENAME" }
 
     $deviceText = New-Object System.Windows.Controls.TextBlock
     $deviceText.Text       = $deviceName
