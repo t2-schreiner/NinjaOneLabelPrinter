@@ -497,7 +497,7 @@ $script:OriginalOrgName = ""
 # Aktuellen Org-Override in Config merken
 function Update-OrgNameOverride {
     if (-not $script:CurrentOrgId) { return }
-    $key = "$($script:CurrentOrgId)"
+    $key = "$script:CurrentOrgId"
     $currentText = $txtOrgName.Text
     if ($currentText -and $currentText -ne $script:OriginalOrgName) {
         $script:Config.OrgNameOverrides[$key] = $currentText
