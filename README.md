@@ -161,18 +161,10 @@ The window is divided into **three columns**:
 
 ## Configuring Labels
 
-A label contains the following elements:
+The Label design looks like this but many elements are configureable.
 
-```
-┌──────────────────────────────────────┐
-│         ORGANIZATION NAME            │  ← Black bar, white text
-├──────────────────────────────────────┤
-│                                      │
-│            DEVICE NAME               │  ← Bold, centered
-│                                      │
-│  MM/YYYY              [Logo]         │  ← Date on the left, logo on the right
-└──────────────────────────────────────┘
-```
+<img width="243" height="165" alt="image" src="https://github.com/user-attachments/assets/99b6c4fc-fe11-4053-993a-f47fed0a62a8" />
+
 
 - **Label format:** Width and height in cm. Print dimensions are automatically converted to the appropriate printer units (1/100 inch).
 - **Fonts:** All text uses "Segoe UI". Font sizes scale automatically with the label size, with auto-shrink for long device names.
@@ -184,7 +176,7 @@ A label contains the following elements:
 | Label Type | Width | Height |
 |---|---|---|
 | Standard device label | 4.0 cm | 2.5 cm |
-| Small label | 3.5 cm | 1.5 cm |
+| Small label | 3.5 cm | 2.0 cm |
 | Large label | 6.0 cm | 4.0 cm |
 | Brother DK-1201 | 9.0 cm | 2.9 cm |
 
