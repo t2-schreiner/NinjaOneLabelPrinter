@@ -889,7 +889,10 @@ function Update-LabelPreview {
     } elseif ($dgRecent.SelectedItems.Count -gt 0) {
         $selectedDevicesForHeader = $dgRecent.SelectedItems
     }
-    $selectedIp = if ($selectedDevicesForHeader.Count -gt 0 -and $selectedDevicesForHeader[0].IpAddress) { [string]$selectedDevicesForHeader[0].IpAddress } else { "" }
+    $selectedIp = ""
+    if ($selectedDevicesForHeader.Count -gt 0 -and $selectedDevicesForHeader[0].IpAddress) {
+        $selectedIp = [string]$selectedDevicesForHeader[0].IpAddress
+    }
     if ($isIpLabel -and $selectedIp) {
         $orgText.Text = $selectedIp
         $orgText.FontFamily = New-Object System.Windows.Media.FontFamily("Consolas")
