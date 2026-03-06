@@ -67,11 +67,7 @@ Der **NinjaOne Asset Label Printer** verbindet sich über die NinjaOne REST API 
 
 2. Das Skript benötigt **keine weiteren Abhängigkeiten** oder Installationsschritte. Alle verwendeten Assemblies (`PresentationFramework`, `System.Drawing`, `System.Windows.Forms`) sind Bestandteil von Windows / .NET Framework.
 
-3. Optional: Stellen Sie sicher, dass die PowerShell-Ausführungsrichtlinie das Ausführen lokaler Skripte erlaubt:
-
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-   ```
+3. **Starten:** Doppelklicken Sie auf **`Start-NinjaOneLabelPrinter.bat`**, um die Anwendung direkt zu starten. Es sind keine weiteren Schritte erforderlich.
 
 ---
 
@@ -93,6 +89,14 @@ Das Tool nutzt OAuth2 mit dem **Client Credentials Grant** – Sie benötigen da
 ---
 
 ## Starten
+
+### Empfohlen: Doppelklick auf die Batch-Datei
+
+Doppelklicken Sie einfach auf **`Start-NinjaOneLabelPrinter.bat`** im Projektordner. Die Batch-Datei startet die Anwendung automatisch – es muss weder PowerShell manuell geöffnet noch die Ausführungsrichtlinie (ExecutionPolicy) geändert werden.
+
+> **Hinweis:** Die ExecutionPolicy wird dabei nur für diese eine Sitzung auf `Bypass` gesetzt. Die systemweite Richtlinie bleibt unverändert.
+
+### Alternativ: Manuell in PowerShell
 
 ```powershell
 .\NinjaOneLabelPrinter.ps1
@@ -280,7 +284,7 @@ Wenn Sie von einer älteren Version ohne Verschlüsselung upgraden, erkennt das 
 | Master-Passwort vergessen | Klicken Sie im Entsperr-Dialog auf **🔄 Zurücksetzen** oder verwenden Sie den Button **🔄 Zugangsdaten zurücksetzen** in der rechten Spalte. Alle gespeicherten Zugangsdaten werden gelöscht und müssen neu eingegeben werden. |
 | Keine Drucker in der Liste | Stellen Sie sicher, dass Windows-Drucker lokal installiert (nicht nur als „Netzwerkfreigabe ohne Treiber") vorhanden sind. |
 | Etikett wird nicht korrekt skaliert | Passen Sie die Etikettenmaße in cm genau an den physischen Etiketten Ihres Druckers an. |
-| Skript startet nicht | Prüfen Sie die PowerShell-Ausführungsrichtlinie: `Get-ExecutionPolicy -Scope CurrentUser` – muss `RemoteSigned` oder `Unrestricted` sein. |
+| Skript startet nicht | Verwenden Sie die Batch-Datei `Start-NinjaOneLabelPrinter.bat` – diese umgeht die Ausführungsrichtlinie automatisch. Alternativ: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
 | Logo erscheint nicht | Stellen Sie sicher, dass der Dateipfad korrekt ist und das Bild ein unterstütztes Format hat (PNG, JPG, BMP). |
 
 ---
