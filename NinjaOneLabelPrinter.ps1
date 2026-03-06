@@ -1033,10 +1033,10 @@ $btnPrint.Add_Click({
 
             # Oberer Balken
             $headerH = [int]($h * $currentHeaderPct / 100)
-            $g.FillRectangle([System.Drawing.Brushes]::Black, $cx, $cy, $w, $headerH)
+            $g.FillRectangle([System.Drawing.Brushes]::Black, $cx, $cy, $w - 1, $headerH)
 
             # Org-Name im Balken
-            $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45), [System.Drawing.FontStyle]::Bold)
+            $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
             try {
                 $orgSize = $g.MeasureString($currentOrgName, $orgFont)
                 $g.DrawString($currentOrgName, $orgFont, [System.Drawing.Brushes]::White,
@@ -1044,7 +1044,7 @@ $btnPrint.Add_Click({
             } finally { $orgFont.Dispose() }
 
             # Gerätename mittig mit Auto-Shrink
-            $devFontSize = [Math]::Max(8, $h * 0.12)
+            $devFontSize = [Math]::Max(8, $h * 0.12 * 96.0 / 100.0)
             $devFont = New-Object System.Drawing.Font("Segoe UI", $devFontSize, [System.Drawing.FontStyle]::Bold)
             $devSize = $g.MeasureString($currentDevName, $devFont)
             $devAvailW = $w - 10
@@ -1065,7 +1065,7 @@ $btnPrint.Add_Click({
             } finally { $devFont.Dispose() }
 
             # Datum links unten
-            $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08))
+            $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08 * 96.0 / 100.0))
             try {
                 $dateSize = $g.MeasureString($currentDate, $dateFont)
                 $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray,
