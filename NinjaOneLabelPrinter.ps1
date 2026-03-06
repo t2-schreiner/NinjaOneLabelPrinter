@@ -222,6 +222,14 @@ function Get-NinjaAllDevicesDetailed {
     return Invoke-NinjaApi -Endpoint "/devices-detailed"
 }
 
+function Get-DeviceDisplayName {
+    param($Device)
+    if ($Device.systemName)  { return [string]$Device.systemName }
+    if ($Device.displayName) { return [string]$Device.displayName }
+    if ($Device.dnsName)     { return [string]$Device.dnsName }
+    return "Gerät-$($Device.id)"
+}
+
 function Get-SafeOsName {
     param($OsObject)
     try {
@@ -406,8 +414,6 @@ function Get-SafeOsName {
                     </Border>
 
                     <!-- Buttons -->
-                    <Button Name="btnPreview" Content="🔄 Vorschau aktualisieren"
-                            Style="{StaticResource ActionButton}" Margin="0,0,0,6"/>
                     <Button Name="btnPrint" Content="🖨 Etikett(en) drucken"
                             Style="{StaticResource ActionButton}" Background="#2ea043"/>
                     <Button Name="btnSettings" Content="💾 Einstellungen speichern"
@@ -416,6 +422,11 @@ function Get-SafeOsName {
                             Style="{StaticResource ActionButton}" Background="#666680" Margin="0,6,0,0"/>
                     <Button Name="btnReset" Content="🔄 Zugangsdaten zurücksetzen"
                             Style="{StaticResource ActionButton}" Background="#cc3333" Margin="0,6,0,0"/>
+
+                    <!-- Copyright-Fußzeile -->
+                    <Separator Background="#444466" Margin="0,12,0,8"/>
+                    <TextBlock Text="© Thomas Schreiner, www.t2.at" Foreground="#888"
+                               FontSize="10" HorizontalAlignment="Center"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -443,7 +454,6 @@ $txtHeaderPercent = $window.FindName("txtHeaderPercent")
 $txtLogoPercent   = $window.FindName("txtLogoPercent")
 $cbPrinter        = $window.FindName("cbPrinter")
 $canvasPreview    = $window.FindName("canvasPreview")
-$btnPreview       = $window.FindName("btnPreview")
 $btnPrint         = $window.FindName("btnPrint")
 $btnSettings      = $window.FindName("btnSettings")
 $btnChangePw      = $window.FindName("btnChangePw")
@@ -500,6 +510,14 @@ $btnConnect.Add_Click({
         $mr = New-Object System.Xml.XmlNodeReader ([xml]$mpXaml)
         $mw = [Windows.Markup.XamlReader]::Load($mr)
         $mw.Owner = $window
+
+        # Enter-Taste im Passwortfeld → Entsperren auslösen
+        $mw.FindName("mpPassword").Add_KeyDown({
+            param($sender, $e)
+            if ($e.Key -eq [System.Windows.Input.Key]::Return) {
+                $mw.FindName("mpUnlock").RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+            }
+        })
 
         $mw.FindName("mpUnlock").Add_Click({
             $pw = $mw.FindName("mpPassword").Password
@@ -653,7 +671,7 @@ $btnConnect.Add_Click({
         $recentDevices = [System.Collections.ArrayList]::new()
         foreach ($dev in $recentRaw) {
             [void]$recentDevices.Add([PSCustomObject]@{
-                SystemName = [string]$dev.systemName
+                SystemName = Get-DeviceDisplayName -Device $dev
                 OrgName    = if ($script:OrgLookup.ContainsKey($dev.organizationId)) { $script:OrgLookup[$dev.organizationId] } else { "?" }
                 AssetId    = $dev.id
                 RawDevice  = $dev
@@ -682,7 +700,7 @@ $tvOrganizations.Add_SelectedItemChanged({
         $deviceList = [System.Collections.ArrayList]::new()
         foreach ($dev in $devices) {
             [void]$deviceList.Add([PSCustomObject]@{
-                SystemName = [string]$dev.systemName
+                SystemName = Get-DeviceDisplayName -Device $dev
                 NodeClass  = $dev.nodeClass
                 AssetId    = $dev.id
                 RawDevice  = $dev
@@ -768,14 +786,14 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($bg, $offsetY)
     $canvasPreview.Children.Add($bg) | Out-Null
 
-    # Rahmen
+    # Rahmen um den Inhaltsbereich (identisch mit Drucklogik)
     $border = New-Object System.Windows.Shapes.Rectangle
-    $border.Width  = $cW
-    $border.Height = $cH
+    $border.Width  = $contentW
+    $border.Height = $contentH
     $border.Stroke = [System.Windows.Media.Brushes]::Black
     $border.StrokeThickness = 1
-    [System.Windows.Controls.Canvas]::SetLeft($border, $offsetX)
-    [System.Windows.Controls.Canvas]::SetTop($border, $offsetY)
+    [System.Windows.Controls.Canvas]::SetLeft($border, $offsetX + $contentX)
+    [System.Windows.Controls.Canvas]::SetTop($border, $offsetY + $contentY)
     $canvasPreview.Children.Add($border) | Out-Null
 
     # --- Proportionale Berechnung (identisch mit Drucklogik) ---
@@ -794,21 +812,22 @@ function Update-LabelPreview {
     # Org-Name: Schriftgröße proportional (GDI+ pt → WPF px: × 4/3)
     $orgFontPt = [Math]::Max(7, $headerH * 0.45)
     $orgFontPx = $orgFontPt * (4.0 / 3.0)
+    $orgTextW  = $contentW - 2  # kleiner Innenrand, damit der Text nicht über den Rahmen ragt
     $orgText = New-Object System.Windows.Controls.TextBlock
     $orgText.Text          = $txtOrgName.Text
     $orgText.Foreground    = [System.Windows.Media.Brushes]::White
     $orgText.FontFamily    = New-Object System.Windows.Media.FontFamily("Segoe UI")
     $orgText.FontSize      = $orgFontPx
     $orgText.FontWeight    = [System.Windows.FontWeights]::Bold
-    $orgText.Width         = $contentW
+    $orgText.Width         = $orgTextW
     $orgText.TextAlignment = [System.Windows.TextAlignment]::Center
     $orgText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
 
     # Vertikal zentriert im Header
-    $orgText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
+    $orgText.Measure([System.Windows.Size]::new($orgTextW, [double]::PositiveInfinity))
     $orgTextH = $orgText.DesiredSize.Height
     $orgTopOffset = [Math]::Max(0, ($headerH - $orgTextH) / 2)
-    [System.Windows.Controls.Canvas]::SetLeft($orgText, $offsetX + $contentX)
+    [System.Windows.Controls.Canvas]::SetLeft($orgText, $offsetX + $contentX + 1)
     [System.Windows.Controls.Canvas]::SetTop($orgText, $offsetY + $contentY + $orgTopOffset)
     $canvasPreview.Children.Add($orgText) | Out-Null
 
@@ -910,7 +929,16 @@ function Update-LabelPreview {
     $canvasPreview.Children.Add($sizeText) | Out-Null
 }
 
-$btnPreview.Add_Click({ Update-LabelPreview })
+# --- Vorschau automatisch aktualisieren bei Werteänderungen ---
+$txtOrgName.Add_TextChanged({ Update-LabelPreview })
+$txtDate.Add_TextChanged({ Update-LabelPreview })
+$txtLabelWidth.Add_TextChanged({ Update-LabelPreview })
+$txtLabelHeight.Add_TextChanged({ Update-LabelPreview })
+$txtPaddingMm.Add_TextChanged({ Update-LabelPreview })
+$txtHeaderPercent.Add_TextChanged({ Update-LabelPreview })
+$txtLogoPercent.Add_TextChanged({ Update-LabelPreview })
+$txtLogoPath.Add_TextChanged({ Update-LabelPreview })
+
 $dgDevices.Add_SelectionChanged({
     if ($dgDevices.SelectedItems.Count -gt 0) {
         $dgRecent.UnselectAll()
@@ -1143,6 +1171,14 @@ $btnChangePw.Add_Click({
 
 # --- Initiale Vorschau ---
 Update-LabelPreview
+
+# --- Beim Start automatisch Passwort-Dialog öffnen (wenn verschlüsselte Zugangsdaten vorhanden) ---
+$window.Add_ContentRendered({
+    if ((-not $script:Config.ClientId -or -not $script:Config.ClientSecret) -and
+        $script:Config.MasterPasswordVerifier -and $script:Config.EncryptedClientId) {
+        $btnConnect.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    }
+})
 
 # --- Fenster anzeigen ---
 $window.ShowDialog() | Out-Null
