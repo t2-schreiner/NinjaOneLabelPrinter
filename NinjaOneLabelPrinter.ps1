@@ -225,7 +225,7 @@ function Get-NinjaOrganizations {
 
 function Get-NinjaDevicesByOrg {
     param([int]$OrgId)
-    return Invoke-NinjaApi -Endpoint "/organization/$OrgId/devices"
+    return Invoke-NinjaApi -Endpoint "/organization/$OrgId/devices-detailed"
 }
 
 function Get-NinjaAllDevicesDetailed {
@@ -238,6 +238,16 @@ function Get-DeviceDisplayName {
     if ($Device.displayName) { return [string]$Device.displayName }
     if ($Device.dnsName)     { return [string]$Device.dnsName }
     return "Gerät-$($Device.id)"
+}
+
+function Get-DeviceIpAddress {
+    param($Device)
+    if ($Device.ipAddresses -and $Device.ipAddresses.Count -gt 0) {
+        return [string]$Device.ipAddresses[0]
+    }
+    if ($Device.publicIP)    { return [string]$Device.publicIP }
+    if ($Device.lastKnownIP) { return [string]$Device.lastKnownIP }
+    return ""
 }
 
 function Get-SafeOsName {
@@ -331,6 +341,7 @@ function Get-SafeOsName {
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
+                    <DataGridTextColumn Header="IP" Binding="{Binding IpAddress}" Width="110"/>
                     <DataGridTextColumn Header="Typ" Binding="{Binding NodeClass}" Width="80"/>
                     <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
@@ -353,6 +364,7 @@ function Get-SafeOsName {
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
+                    <DataGridTextColumn Header="IP" Binding="{Binding IpAddress}" Width="110"/>
                     <DataGridTextColumn Header="Organisation" Binding="{Binding OrgName}" Width="120"/>
                     <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
@@ -406,6 +418,18 @@ function Get-SafeOsName {
                         <Button Name="btnSelectLogo" Content="📂" Style="{StaticResource ActionButton}"
                                 Margin="4,0,0,0" Padding="8,4"/>
                     </StackPanel>
+
+                    <!-- Label-Typ -->
+                    <TextBlock Text="Label-Typ:" Style="{StaticResource HeaderText}"/>
+                    <ComboBox Name="cbLabelType" Background="#2a2a3d" Foreground="Black"
+                              FontSize="12" Margin="0,0,0,8" SelectedIndex="0">
+                        <ComboBoxItem Content="Geräte-Label"/>
+                        <ComboBoxItem Content="IP-Label"/>
+                    </ComboBox>
+
+                    <!-- IP auf normalem Geräte-Label anzeigen -->
+                    <CheckBox Name="chkShowIp" Content="IP auf Geräte-Label anzeigen"
+                              Foreground="White" FontSize="12" Margin="0,0,0,8"/>
 
                     <!-- Drucker -->
                     <TextBlock Text="Drucker:" Style="{StaticResource HeaderText}"/>
@@ -464,6 +488,8 @@ $txtHeaderPercent = $window.FindName("txtHeaderPercent")
 $txtLogoPercent   = $window.FindName("txtLogoPercent")
 $cbPrinter        = $window.FindName("cbPrinter")
 $canvasPreview    = $window.FindName("canvasPreview")
+$cbLabelType      = $window.FindName("cbLabelType")
+$chkShowIp        = $window.FindName("chkShowIp")
 $btnPrint         = $window.FindName("btnPrint")
 $btnSettings      = $window.FindName("btnSettings")
 $btnChangePw      = $window.FindName("btnChangePw")
@@ -698,6 +724,7 @@ $btnConnect.Add_Click({
         foreach ($dev in $recentRaw) {
             [void]$recentDevices.Add([PSCustomObject]@{
                 SystemName = Get-DeviceDisplayName -Device $dev
+                IpAddress  = Get-DeviceIpAddress -Device $dev
                 OrgName    = if ($script:OrgLookup.ContainsKey($dev.organizationId)) { $script:OrgLookup[$dev.organizationId] } else { "?" }
                 AssetId    = $dev.id
                 RawDevice  = $dev
@@ -739,6 +766,7 @@ $tvOrganizations.Add_SelectedItemChanged({
         foreach ($dev in $devices) {
             [void]$deviceList.Add([PSCustomObject]@{
                 SystemName = Get-DeviceDisplayName -Device $dev
+                IpAddress  = Get-DeviceIpAddress -Device $dev
                 NodeClass  = $dev.nodeClass
                 AssetId    = $dev.id
                 RawDevice  = $dev
@@ -852,9 +880,24 @@ function Update-LabelPreview {
     $orgFontPx = $orgFontPt * (4.0 / 3.0)
     $orgTextW  = $contentW - 2  # kleiner Innenrand, damit der Text nicht über den Rahmen ragt
     $orgText = New-Object System.Windows.Controls.TextBlock
-    $orgText.Text          = $txtOrgName.Text
+
+    # IP-Label: IP im Header statt Org-Name
+    $isIpLabel = ($cbLabelType.SelectedIndex -eq 1)
+    $selectedDevicesForHeader = @()
+    if ($dgDevices.SelectedItems.Count -gt 0) {
+        $selectedDevicesForHeader = $dgDevices.SelectedItems
+    } elseif ($dgRecent.SelectedItems.Count -gt 0) {
+        $selectedDevicesForHeader = $dgRecent.SelectedItems
+    }
+    $selectedIp = if ($selectedDevicesForHeader.Count -gt 0 -and $selectedDevicesForHeader[0].IpAddress) { [string]$selectedDevicesForHeader[0].IpAddress } else { "" }
+    if ($isIpLabel -and $selectedIp) {
+        $orgText.Text = $selectedIp
+        $orgText.FontFamily = New-Object System.Windows.Media.FontFamily("Consolas")
+    } else {
+        $orgText.Text = $txtOrgName.Text
+        $orgText.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    }
     $orgText.Foreground    = [System.Windows.Media.Brushes]::White
-    $orgText.FontFamily    = New-Object System.Windows.Media.FontFamily("Segoe UI")
     $orgText.FontSize      = $orgFontPx
     $orgText.FontWeight    = [System.Windows.FontWeights]::Bold
     $orgText.Width         = $orgTextW
@@ -870,13 +913,10 @@ function Update-LabelPreview {
     $canvasPreview.Children.Add($orgText) | Out-Null
 
     # Gerätename ermitteln
-    $selectedDevices = @()
-    if ($dgDevices.SelectedItems.Count -gt 0) {
-        $selectedDevices = $dgDevices.SelectedItems
-    } elseif ($dgRecent.SelectedItems.Count -gt 0) {
-        $selectedDevices = $dgRecent.SelectedItems
-    }
-    $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "GERÄTENAME" }
+    $deviceName = if ($selectedDevicesForHeader.Count -gt 0) { [string]$selectedDevicesForHeader[0].SystemName } else { "GERÄTENAME" }
+
+    # Prüfen, ob IP unter dem Gerätenamen angezeigt werden soll
+    $showIpOnLabel = (-not $isIpLabel) -and ($chkShowIp.IsChecked -eq $true) -and $selectedIp
 
     # Gerätename: Schriftgröße proportional mit Auto-Shrink
     $devFontPt = [Math]::Max(8, $contentH * 0.12)
@@ -907,16 +947,40 @@ function Update-LabelPreview {
     $deviceText.TextAlignment = [System.Windows.TextAlignment]::Center
     $deviceText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
 
+    # IP-TextBlock vorbereiten (falls nötig)
+    $ipTextH = 0
+    $ipText = $null
+    if ($showIpOnLabel) {
+        $ipFontPx = [Math]::Max(5, $devFontPx * 0.55)
+        $ipText = New-Object System.Windows.Controls.TextBlock
+        $ipText.Text          = $selectedIp
+        $ipText.Foreground    = [System.Windows.Media.Brushes]::DimGray
+        $ipText.FontFamily    = New-Object System.Windows.Media.FontFamily("Consolas")
+        $ipText.FontSize      = $ipFontPx
+        $ipText.Width         = $contentW
+        $ipText.TextAlignment = [System.Windows.TextAlignment]::Center
+        $ipText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
+        $ipTextH = $ipText.DesiredSize.Height
+    }
+
     # Vertikal zentriert im mittleren Bereich (zwischen Header und Fußzeile)
     $deviceText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
     $devTextH = $deviceText.DesiredSize.Height
     $middleTop = $contentY + $headerH
     $footerH = [Math]::Max(8, $contentH * $logoPct / 100)
     $middleH = $contentH - $headerH - $footerH
-    $devTopOffset = $middleTop + [Math]::Max(0, ($middleH - $devTextH) / 2)
+    $totalBlockH = $devTextH + $ipTextH
+    $devTopOffset = $middleTop + [Math]::Max(0, ($middleH - $totalBlockH) / 2)
     [System.Windows.Controls.Canvas]::SetLeft($deviceText, $offsetX + $contentX)
     [System.Windows.Controls.Canvas]::SetTop($deviceText, $offsetY + $devTopOffset)
     $canvasPreview.Children.Add($deviceText) | Out-Null
+
+    # IP unter dem Gerätenamen anzeigen
+    if ($showIpOnLabel -and $ipText) {
+        [System.Windows.Controls.Canvas]::SetLeft($ipText, $offsetX + $contentX)
+        [System.Windows.Controls.Canvas]::SetTop($ipText, $offsetY + $devTopOffset + $devTextH)
+        $canvasPreview.Children.Add($ipText) | Out-Null
+    }
 
     # Datum links unten
     $dateFontPt = [Math]::Max(5, $contentH * 0.08)
@@ -976,6 +1040,9 @@ $txtPaddingMm.Add_TextChanged({ Update-LabelPreview })
 $txtHeaderPercent.Add_TextChanged({ Update-LabelPreview })
 $txtLogoPercent.Add_TextChanged({ Update-LabelPreview })
 $txtLogoPath.Add_TextChanged({ Update-LabelPreview })
+$cbLabelType.Add_SelectionChanged({ Update-LabelPreview })
+$chkShowIp.Add_Checked({ Update-LabelPreview })
+$chkShowIp.Add_Unchecked({ Update-LabelPreview })
 
 $dgDevices.Add_SelectionChanged({
     if ($dgDevices.SelectedItems.Count -gt 0) {
@@ -1016,19 +1083,27 @@ $btnPrint.Add_Click({
         return
     }
 
-    # Geräte sammeln (aus beiden DataGrids)
-    $devicesToPrint = @()
+    # Geräte sammeln (aus beiden DataGrids) – mit IP-Adresse
+    $devicesToPrint = [System.Collections.ArrayList]::new()
     if ($dgDevices.SelectedItems.Count -gt 0) {
-        $devicesToPrint += $dgDevices.SelectedItems | ForEach-Object { $_.SystemName }
+        foreach ($item in $dgDevices.SelectedItems) {
+            [void]$devicesToPrint.Add([PSCustomObject]@{ Name = $item.SystemName; Ip = $item.IpAddress })
+        }
     }
     if ($dgRecent.SelectedItems.Count -gt 0) {
-        $devicesToPrint += $dgRecent.SelectedItems | ForEach-Object { $_.SystemName }
+        foreach ($item in $dgRecent.SelectedItems) {
+            [void]$devicesToPrint.Add([PSCustomObject]@{ Name = $item.SystemName; Ip = $item.IpAddress })
+        }
     }
 
     if ($devicesToPrint.Count -eq 0) {
         [System.Windows.MessageBox]::Show("Bitte mindestens ein Gerät auswählen!", "Hinweis", "OK", "Warning")
         return
     }
+
+    # Label-Typ und IP-Checkbox erfassen
+    $isIpLabel   = ($cbLabelType.SelectedIndex -eq 1)
+    $showIpOnLabel = (-not $isIpLabel) -and ($chkShowIp.IsChecked -eq $true)
 
     # Drucker und Org-Override merken
     Update-OrgNameOverride
@@ -1052,19 +1127,22 @@ $btnPrint.Add_Click({
     # Padding in 1/100 Zoll (mm → 1/100 inch: mm / 25.4 * 100)
     $pad100 = [int]($paddingMm / 25.4 * 100)
 
-    foreach ($devName in $devicesToPrint) {
+    foreach ($devInfo in $devicesToPrint) {
         $printDoc = New-Object System.Drawing.Printing.PrintDocument
         $printDoc.PrinterSettings.PrinterName = $selectedPrinter
         $printDoc.DefaultPageSettings.PaperSize = New-Object System.Drawing.Printing.PaperSize("Label", $labelW100, $labelH100)
         $printDoc.DefaultPageSettings.Margins = New-Object System.Drawing.Printing.Margins(0, 0, 0, 0)
 
-        $currentDevName  = $devName
-        $currentOrgName  = $txtOrgName.Text
-        $currentDate     = $txtDate.Text
-        $currentLogo     = $txtLogoPath.Text
-        $currentPad      = $pad100
+        $currentDevName   = $devInfo.Name
+        $currentDevIp     = $devInfo.Ip
+        $currentOrgName   = $txtOrgName.Text
+        $currentDate      = $txtDate.Text
+        $currentLogo      = $txtLogoPath.Text
+        $currentPad       = $pad100
         $currentHeaderPct = $headerPct
-        $currentLogoPct  = $logoPct
+        $currentLogoPct   = $logoPct
+        $currentIsIpLabel    = $isIpLabel
+        $currentShowIpOnLabel = $showIpOnLabel
 
         $printDoc.Add_PrintPage({
             param($sender, $e)
@@ -1088,11 +1166,17 @@ $btnPrint.Add_Click({
             $headerH = [int]($h * $currentHeaderPct / 100)
             $g.FillRectangle([System.Drawing.Brushes]::Black, $cx, $cy, $w - 1, $headerH)
 
-            # Org-Name im Balken
-            $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
+            # Text im Balken: IP-Label → IP, sonst Org-Name
+            $headerText = $currentOrgName
+            $headerFontFamily = "Segoe UI"
+            if ($currentIsIpLabel -and $currentDevIp) {
+                $headerText = $currentDevIp
+                $headerFontFamily = "Consolas"
+            }
+            $orgFont = New-Object System.Drawing.Font($headerFontFamily, [Math]::Max(7, $headerH * 0.45 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
             try {
-                $orgSize = $g.MeasureString($currentOrgName, $orgFont)
-                $g.DrawString($currentOrgName, $orgFont, [System.Drawing.Brushes]::White,
+                $orgSize = $g.MeasureString($headerText, $orgFont)
+                $g.DrawString($headerText, $orgFont, [System.Drawing.Brushes]::White,
                     [int]($cx + ($w - $orgSize.Width) / 2), [int]($cy + ($headerH - $orgSize.Height) / 2))
             } finally { $orgFont.Dispose() }
 
@@ -1108,14 +1192,33 @@ $btnPrint.Add_Click({
                 $devSize = $g.MeasureString($currentDevName, $devFont)
             }
 
+            # IP unter Gerätename messen (falls aktiviert)
+            $ipSize = $null
+            $ipFont = $null
+            if ($currentShowIpOnLabel -and $currentDevIp) {
+                $ipFontSize = [Math]::Max(5, $devFontSize * 0.55)
+                $ipFont = New-Object System.Drawing.Font("Consolas", $ipFontSize)
+                $ipSize = $g.MeasureString($currentDevIp, $ipFont)
+            }
+
             # Vertikale Zentrierung im mittleren Bereich (zwischen Header und Fußzeile)
             $footerH = [int]($h * $currentLogoPct / 100)
             $middleTop = $cy + $headerH
             $middleH = $h - $headerH - $footerH
+            $totalBlockH = $devSize.Height + $(if ($ipSize) { $ipSize.Height } else { 0 })
             try {
+                $devY = [int]($middleTop + ($middleH - $totalBlockH) / 2)
                 $g.DrawString($currentDevName, $devFont, [System.Drawing.Brushes]::Black,
-                    [int]($cx + ($w - $devSize.Width) / 2), [int]($middleTop + ($middleH - $devSize.Height) / 2))
-            } finally { $devFont.Dispose() }
+                    [int]($cx + ($w - $devSize.Width) / 2), $devY)
+                # IP unter dem Gerätenamen zeichnen
+                if ($ipSize -and $ipFont) {
+                    $g.DrawString($currentDevIp, $ipFont, [System.Drawing.Brushes]::DimGray,
+                        [int]($cx + ($w - $ipSize.Width) / 2), [int]($devY + $devSize.Height))
+                }
+            } finally {
+                $devFont.Dispose()
+                if ($ipFont) { $ipFont.Dispose() }
+            }
 
             # Datum links unten
             $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08 * 96.0 / 100.0))
