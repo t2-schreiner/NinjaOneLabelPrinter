@@ -1,219 +1,223 @@
 # NinjaOne Asset Label Printer
 
-Ein PowerShell-basiertes WPF-Tool zum Drucken von Asset-Etiketten für Geräte, die in [NinjaOne RMM](https://www.ninjarmm.com/) verwaltet werden.
+A PowerShell-based WPF tool for printing asset labels for devices managed in [NinjaOne RMM](https://www.ninjarmm.com/).
 
 ---
 
-## Inhaltsverzeichnis
+## Table of Contents
 
-- [Übersicht](#übersicht)
-- [Voraussetzungen](#voraussetzungen)
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [NinjaOne API einrichten](#ninjaone-api-einrichten)
-- [Starten](#starten)
-- [Benutzeroberfläche](#benutzeroberfläche)
-  - [Linke Spalte – Verbindung & Organisationen](#linke-spalte--verbindung--organisationen)
-  - [Mittlere Spalte – Geräteliste](#mittlere-spalte--geräteliste)
-  - [Rechte Spalte – Etiketten-Designer](#rechte-spalte--etiketten-designer)
-- [Etiketten konfigurieren](#etiketten-konfigurieren)
-- [Drucken](#drucken)
-- [Einstellungen & Konfigurationsdatei](#einstellungen--konfigurationsdatei)
-- [Sicherheitskonzept](#sicherheitskonzept)
-- [Häufige Probleme](#häufige-probleme)
+- [NinjaOne API Setup](#ninjaone-api-setup)
+- [Getting Started](#getting-started)
+- [User Interface](#user-interface)
+  - [Left Column – Connection & Organizations](#left-column--connection--organizations)
+  - [Middle Column – Device List](#middle-column--device-list)
+  - [Right Column – Label Designer](#right-column--label-designer)
+- [Configuring Labels](#configuring-labels)
+- [Printing](#printing)
+- [Settings & Configuration File](#settings--configuration-file)
+- [Security Concept](#security-concept)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## Übersicht
+## Overview
 
-Der **NinjaOne Asset Label Printer** verbindet sich über die NinjaOne REST API mit Ihrem NinjaOne-Account, listet alle Organisationen und deren Geräte auf und ermöglicht das direkte Drucken von professionellen Asset-Etiketten auf jedem lokal angebundenen Windows-Drucker.
+The **NinjaOne Asset Label Printer** connects to your NinjaOne account via the NinjaOne REST API, lists all organizations and their devices, and enables direct printing of professional asset labels on any locally connected Windows printer.
 
-**Funktionen auf einen Blick:**
+**Features at a Glance:**
 
-- 🔌 OAuth2-Authentifizierung gegenüber der NinjaOne API
-- 🏢 Browsen aller Organisationen und deren Geräte
-- 🕐 Anzeige der 20 zuletzt hinzugefügten Geräte (organisationsübergreifend)
-- 🏷 Live-Vorschau des Etiketts mit Organisationsname, Gerätename, Datum und Logo
-- 🖨 Direktdruck auf beliebige Windows-Drucker (inkl. Etikettendrucker)
-- 📐 Frei konfigurierbares Etikettenformat (Breite × Höhe in cm)
-- 💾 Persistente Einstellungen (API-Credentials, Drucker, Maße, Logo)
-- 🔐 AES-256-Verschlüsselung der API-Zugangsdaten mit Master-Passwort
-- 🔑 PBKDF2-SHA256 Schlüsselableitung (100 000 Iterationen)
-- 🔄 Zurücksetzen-Funktion bei vergessenem Master-Passwort
-- 🖼 Eigenes Firmenlogo auf dem Etikett
+- 🔌 OAuth2 authentication against the NinjaOne API
+- 🏢 Browse all organizations and their devices
+- 🕐 Display the 20 most recently added devices (across all organizations)
+- 🏷 Live label preview with organization name, device name, date, and logo
+- 🖨 Direct printing on any Windows printer (including label printers)
+- 📐 Fully configurable label format (width × height in cm)
+- 🔧 Adjustable inner padding, header height, and logo height (as percentage of label size)
+- 🏷 Per-organization name overrides (custom display names)
+- 💾 Persistent settings (API credentials, printer, dimensions, logo)
+- 🔐 AES-256 encryption of API credentials with a master password
+- 🔑 PBKDF2-SHA256 key derivation (100,000 iterations)
+- 🔄 Reset function for forgotten master passwords
+- 🖼 Custom company logo on the label
 
 ---
 
-## Voraussetzungen
+## Prerequisites
 
-| Anforderung | Version / Hinweis |
+| Requirement | Version / Notes |
 |---|---|
-| **Windows** | Windows 10 / Windows Server 2016 oder neuer |
-| **PowerShell** | Version 7 oder neuer |
-| **.NET Framework** | 4.7.2+ (WPF-Unterstützung + moderne Kryptografie) – bei Windows 10 (1803+) bereits enthalten |
-| **NinjaOne-Konto** | Zugang zum NinjaOne-Portal mit Berechtigung zur API-Nutzung |
-| **Drucker** | Beliebiger lokal installierter Windows-Drucker (z. B. Brother QL-Serie, Zebra, etc.) |
+| **Windows** | Windows 10 / Windows Server 2016 or newer |
+| **PowerShell** | Version 7 or newer |
+| **.NET Framework** | 4.7.2+ (WPF support + modern cryptography) – included with Windows 10 (1803+) |
+| **NinjaOne Account** | Access to the NinjaOne portal with API permissions |
+| **Printer** | Any locally installed Windows printer (e.g. Brother QL series, Zebra, etc.) |
 
-> **Hinweis:** Das Skript benötigt eine Internetverbindung nur zum NinjaOne-API-Endpunkt.
+> **Note:** The script only requires an internet connection to the NinjaOne API endpoint.
 
 ---
 
 ## Installation
 
-1. **Repository herunterladen** – entweder als ZIP oder per `git clone`:
+1. **Download the repository** – either as a ZIP or via `git clone`:
 
    ```powershell
    git clone https://github.com/t2-schreiner/NinjaOneLabelPrinter.git
    ```
 
-2. Das Skript benötigt **keine weiteren Abhängigkeiten** oder Installationsschritte. Alle verwendeten Assemblies (`PresentationFramework`, `System.Drawing`, `System.Windows.Forms`) sind Bestandteil von Windows / .NET Framework.
+2. The script requires **no additional dependencies** or installation steps. All assemblies used (`PresentationFramework`, `System.Drawing`, `System.Windows.Forms`) are part of Windows / .NET Framework.
 
-3. **Starten:** Doppelklicken Sie auf **`Start-NinjaOneLabelPrinter.bat`**, um die Anwendung direkt zu starten. Es sind keine weiteren Schritte erforderlich.
+3. **Launch:** Double-click **`Start-NinjaOneLabelPrinter.bat`** to start the application directly. No further steps are required.
 
 ---
 
-## NinjaOne API einrichten
+## NinjaOne API Setup
 
-Das Tool nutzt OAuth2 mit dem **Client Credentials Grant** – Sie benötigen dafür eine **NinjaOne API-Applikation**:
+The tool uses OAuth2 with the **Client Credentials Grant** – you need a **NinjaOne API application** for this:
 
-1. Melden Sie sich im NinjaOne-Portal an.
-2. Navigieren Sie zu **Administration → Apps → API** (oder **Configuration → Integrations → API**).
-3. Legen Sie eine neue Applikation an:
-   - **Name:** z. B. `LabelPrinter`
+1. Log in to the NinjaOne portal.
+2. Navigate to **Administration → Apps → API** (or **Configuration → Integrations → API**).
+3. Create a new application:
+   - **Name:** e.g. `LabelPrinter`
    - **Grant Type:** `Client Credentials`
    - **Scopes:** `monitoring`, `management`
-4. Notieren Sie **Client ID** und **Client Secret**.
-5. Wählen Sie den passenden API-Endpunkt:
-   - EU-Instanz: `https://eu.ninjarmm.com`
-   - US-Instanz: `https://app.ninjarmm.com`
+4. Note down the **Client ID** and **Client Secret**.
+5. Select the appropriate API endpoint:
+   - EU instance: `https://eu.ninjarmm.com`
+   - US instance: `https://app.ninjarmm.com`
 
 ---
 
-## Starten
+## Getting Started
 
-### Empfohlen: Doppelklick auf die Batch-Datei
+### Recommended: Double-click the batch file
 
-Doppelklicken Sie einfach auf **`Start-NinjaOneLabelPrinter.bat`** im Projektordner. Die Batch-Datei startet die Anwendung automatisch – es muss weder PowerShell manuell geöffnet noch die Ausführungsrichtlinie (ExecutionPolicy) geändert werden.
+Simply double-click **`Start-NinjaOneLabelPrinter.bat`** in the project folder. The batch file starts the application automatically – there is no need to open PowerShell manually or change the execution policy.
 
-> **Hinweis:** Die ExecutionPolicy wird dabei nur für diese eine Sitzung auf `Bypass` gesetzt. Die systemweite Richtlinie bleibt unverändert.
+> **Note:** The ExecutionPolicy is only set to `Bypass` for this single session. The system-wide policy remains unchanged.
 
-### Alternativ: Manuell in PowerShell
+### Alternative: Run manually in PowerShell
 
 ```powershell
 .\NinjaOneLabelPrinter.ps1
 ```
 
-Beim **ersten Start** erscheint nach Klick auf „Mit NinjaOne verbinden" ein Einrichtungsdialog, in dem Sie folgende Angaben eintragen:
+On **first launch**, after clicking "Connect to NinjaOne", a setup dialog appears where you enter the following:
 
-| Feld | Beschreibung |
+| Field | Description |
 |---|---|
-| **Master-Passwort** | Frei wählbares Passwort (min. 8 Zeichen), das zum Verschlüsseln der API-Zugangsdaten verwendet wird. |
-| **Base URL** | API-Endpunkt Ihrer NinjaOne-Instanz (z. B. `https://eu.ninjarmm.com`) |
-| **Client ID** | OAuth2 Client ID der angelegten API-Applikation |
-| **Client Secret** | OAuth2 Client Secret der angelegten API-Applikation |
+| **Master Password** | A freely chosen password (min. 8 characters) used to encrypt API credentials. |
+| **Base URL** | API endpoint of your NinjaOne instance (e.g. `https://eu.ninjarmm.com`) |
+| **Client ID** | OAuth2 Client ID of the created API application |
+| **Client Secret** | OAuth2 Client Secret of the created API application |
 
-Die Zugangsdaten werden **AES-256-verschlüsselt** in der [Konfigurationsdatei](#einstellungen--konfigurationsdatei) gespeichert.
+The credentials are stored **AES-256 encrypted** in the [configuration file](#settings--configuration-file).
 
-Bei jedem weiteren Start werden Sie beim Verbinden nach dem **Master-Passwort** gefragt, um die Zugangsdaten zu entschlüsseln.
+On every subsequent launch, you will be prompted for the **master password** when connecting, to decrypt the credentials.
 
 ---
 
-## Benutzeroberfläche
+## User Interface
 
-Das Fenster ist in **drei Spalten** unterteilt:
+The window is divided into **three columns**:
 
 ```
 ┌─────────────────┬───────────────────────────────┬──────────────────────┐
-│  Verbindung &   │     Geräteliste               │  Etiketten-Designer  │
-│  Organisationen │     (Organisation)            │  & Vorschau          │
+│  Connection &   │     Device List                │  Label Designer      │
+│  Organizations  │     (Organization)             │  & Preview           │
 │                 ├───────────────────────────────│                      │
-│                 │  Zuletzt hinzugefügte Geräte  │                      │
+│                 │  Recently Added Devices        │                      │
 └─────────────────┴───────────────────────────────┴──────────────────────┘
 ```
 
-### Linke Spalte – Verbindung & Organisationen
+### Left Column – Connection & Organizations
 
-| Element | Funktion |
+| Element | Function |
 |---|---|
-| **Mit NinjaOne verbinden** | Öffnet ggf. den Einstellungsdialog und verbindet sich mit der API. Nach erfolgreicher Verbindung werden alle Organisationen im Baum geladen. |
-| **Organisationsbaum** | Listet alle NinjaOne-Organisationen auf. Ein Klick auf eine Organisation lädt deren Geräte in die mittlere Spalte. |
+| **Connect to NinjaOne** | Opens the setup dialog if needed and connects to the API. After a successful connection, all organizations are loaded into the tree. |
+| **Organization Tree** | Lists all NinjaOne organizations. Clicking an organization loads its devices into the middle column. |
 
-### Mittlere Spalte – Geräteliste
+### Middle Column – Device List
 
-| Element | Funktion |
+| Element | Function |
 |---|---|
-| **Geräteliste (oben)** | Zeigt alle Geräte der ausgewählten Organisation (Gerätename, Typ, Betriebssystem, Erstellungsdatum). Mehrfachauswahl per `Strg`+Klick oder `Shift`+Klick möglich. |
-| **Zuletzt hinzugefügte Geräte (unten)** | Zeigt die 20 zuletzt in NinjaOne registrierten Geräte über alle Organisationen hinweg. |
+| **Device List (top)** | Shows all devices of the selected organization (device name, type, asset ID). Multi-select via `Ctrl`+Click or `Shift`+Click is supported. |
+| **Recently Added Devices (bottom)** | Shows the 20 most recently registered devices in NinjaOne across all organizations. |
 
-### Rechte Spalte – Etiketten-Designer
+### Right Column – Label Designer
 
-| Element | Funktion |
+| Element | Function |
 |---|---|
-| **Organisationsname** | Wird automatisch aus der ausgewählten Organisation übernommen – kann manuell überschrieben werden. |
-| **Datum (Monat/Jahr)** | Standardmäßig das aktuelle Monat/Jahr – kann manuell angepasst werden. |
-| **Etikettengröße** | Breite und Höhe des Etiketts in Zentimetern (z. B. `4,0 x 2,5 cm`). |
-| **Logo** | Über das 📂-Symbol kann eine Bilddatei (PNG, JPG, BMP) als Logo ausgewählt werden. Es erscheint unten rechts auf dem Etikett. |
-| **Drucker** | Dropdown mit allen installierten Windows-Druckern. Der zuletzt verwendete Drucker wird beim nächsten Start vorausgewählt. |
-| **Vorschau** | Zeigt eine Live-Vorschau des Etiketts mit allen aktuellen Einstellungen. |
-| **🔄 Vorschau aktualisieren** | Aktualisiert die Vorschau manuell. |
-| **🖨 Etikett(en) drucken** | Druckt für jedes ausgewählte Gerät ein Etikett. |
-| **💾 Einstellungen speichern** | Speichert Etikettengröße, Logo-Pfad und ausgewählten Drucker in der Konfigurationsdatei. |
-| **🔑 Master-Passwort ändern** | Ermöglicht das Ändern des Master-Passworts. Die Zugangsdaten werden mit dem neuen Passwort neu verschlüsselt. |
-| **🔄 Zugangsdaten zurücksetzen** | Löscht alle gespeicherten API-Zugangsdaten und das Master-Passwort. Nützlich, wenn das Master-Passwort vergessen wurde. |
+| **Organization name** | Automatically populated from the selected organization – can be manually overridden. Overrides are saved per organization. |
+| **Date (month/year)** | Defaults to the current month/year – can be manually adjusted. |
+| **Label size** | Width and height of the label in centimeters (e.g. `4.0 × 2.5 cm`). |
+| **Inner padding** | Padding in millimeters applied on all sides of the label content. |
+| **Header / Logo height** | Percentage of the label height used for the header bar and logo area respectively. |
+| **Logo** | Use the 📂 button to select an image file (PNG, JPG, BMP) as a logo. It appears in the bottom-right of the label. |
+| **Printer** | Dropdown with all installed Windows printers. The last used printer is pre-selected on the next launch. |
+| **Preview** | Shows a live preview of the label with all current settings. |
+| **🖨 Print label(s)** | Prints one label for each selected device. |
+| **💾 Save settings** | Saves label size, padding, header/logo percentages, logo path, and selected printer to the configuration file. |
+| **🔑 Change master password** | Allows changing the master password. The credentials are re-encrypted with the new password. |
+| **🔄 Reset credentials** | Deletes all stored API credentials and the master password. Useful when the master password has been forgotten. |
 
 ---
 
-## Etiketten konfigurieren
+## Configuring Labels
 
-Ein Etikett enthält folgende Elemente:
+A label contains the following elements:
 
 ```
 ┌──────────────────────────────────────┐
-│         ORGANISATIONSNAME            │  ← Schwarzer Balken, weißer Text
+│         ORGANIZATION NAME            │  ← Black bar, white text
 ├──────────────────────────────────────┤
 │                                      │
-│           GERÄTENAME                 │  ← Fett, zentriert
+│            DEVICE NAME               │  ← Bold, centered
 │                                      │
-│  MM/YYYY              [Logo]         │  ← Datum links, Logo rechts
+│  MM/YYYY              [Logo]         │  ← Date on the left, logo on the right
 └──────────────────────────────────────┘
 ```
 
-- **Etikettenformat:** Breite und Höhe in cm. Die Druckmaße werden automatisch in die passenden Druckereinheiten (1/100 Zoll) umgerechnet.
-- **Schriften:** Alle Texte nutzen „Segoe UI". Die Schriftgröße skaliert automatisch mit der Etikettengröße.
-- **Ränder:** Es werden keine Druckerränder verwendet (randlos).
+- **Label format:** Width and height in cm. Print dimensions are automatically converted to the appropriate printer units (1/100 inch).
+- **Fonts:** All text uses "Segoe UI". Font sizes scale automatically with the label size, with auto-shrink for long device names.
+- **Margins:** No printer margins are used (borderless). An optional inner padding (in mm) can be configured.
+- **Header & Logo height:** Configurable as a percentage of the total label height (default: 22% each).
 
-### Empfohlene Etikettengrößen
+### Recommended Label Sizes
 
-| Etikettentyp | Breite | Höhe |
+| Label Type | Width | Height |
 |---|---|---|
-| Standard-Geräteetikett | 4,0 cm | 2,5 cm |
-| Kleines Etikett | 3,5 cm | 1,5 cm |
-| Großes Etikett | 6,0 cm | 4,0 cm |
-| Brother DK-1201 | 9,0 cm | 2,9 cm |
+| Standard device label | 4.0 cm | 2.5 cm |
+| Small label | 3.5 cm | 1.5 cm |
+| Large label | 6.0 cm | 4.0 cm |
+| Brother DK-1201 | 9.0 cm | 2.9 cm |
 
 ---
 
-## Drucken
+## Printing
 
-1. Verbinden Sie sich mit NinjaOne (Schaltfläche **Mit NinjaOne verbinden**).
-2. Klicken Sie im Organisationsbaum auf die gewünschte Organisation.
-3. Wählen Sie ein oder mehrere Geräte in der Geräteliste aus (Mehrfachauswahl mit `Strg` oder `Shift`).
-4. Wählen Sie im Dropdown den Zieldrucker aus.
-5. Passen Sie Organisationsname, Datum, Etikettengröße und Logo nach Bedarf an.
-6. Klicken Sie auf **🖨 Etikett(en) drucken**.
+1. Connect to NinjaOne (button **Connect to NinjaOne**).
+2. Click on the desired organization in the organization tree.
+3. Select one or more devices in the device list (multi-select with `Ctrl` or `Shift`).
+4. Select the target printer from the dropdown.
+5. Adjust the organization name, date, label size, and logo as needed.
+6. Click **🖨 Print label(s)**.
 
-> Es wird pro ausgewähltem Gerät **ein separates Etikett** gedruckt.
+> One **separate label** is printed for each selected device.
 
 ---
 
-## Einstellungen & Konfigurationsdatei
+## Settings & Configuration File
 
-Die Einstellungen werden automatisch unter folgendem Pfad gespeichert:
+Settings are automatically saved at the following path:
 
 ```
 %APPDATA%\NinjaOneLabelPrinter\config.json
 ```
 
-Beispielinhalt der `config.json`:
+Example contents of `config.json`:
 
 ```json
 {
@@ -221,78 +225,86 @@ Beispielinhalt der `config.json`:
   "LastPrinter": "Brother QL-820NWB",
   "LabelWidthCm": 4.0,
   "LabelHeightCm": 2.5,
+  "PaddingMm": 0.0,
+  "HeaderHeightPercent": 22,
+  "LogoHeightPercent": 22,
   "LogoPath": "C:\\Users\\User\\Pictures\\logo.png",
-  "EncryptedClientId": "base64-verschlüsselter-Wert...",
-  "EncryptedClientSecret": "base64-verschlüsselter-Wert...",
-  "MasterPasswordVerifier": "base64-Verifier..."
+  "OrgNameOverrides": {},
+  "EncryptedClientId": "base64-encrypted-value...",
+  "EncryptedClientSecret": "base64-encrypted-value...",
+  "MasterPasswordVerifier": "base64-verifier..."
 }
 ```
 
-| Schlüssel | Beschreibung |
+| Key | Description |
 |---|---|
-| `NinjaBaseUrl` | API-Basis-URL der NinjaOne-Instanz |
-| `EncryptedClientId` | AES-256-verschlüsselte OAuth2 Client ID (Base64-kodiert: Salt + IV + Ciphertext) |
-| `EncryptedClientSecret` | AES-256-verschlüsseltes OAuth2 Client Secret (Base64-kodiert: Salt + IV + Ciphertext) |
-| `MasterPasswordVerifier` | PBKDF2-SHA256-Hash zur Verifizierung des Master-Passworts (Base64-kodiert: Salt + Hash) |
-| `LastPrinter` | Name des zuletzt verwendeten Druckers |
-| `LabelWidthCm` | Etikettenbreite in cm |
-| `LabelHeightCm` | Etikettenhöhe in cm |
-| `LogoPath` | Absoluter Pfad zur Logo-Bilddatei |
+| `NinjaBaseUrl` | API base URL of the NinjaOne instance |
+| `EncryptedClientId` | AES-256-encrypted OAuth2 Client ID (Base64-encoded: Salt + IV + Ciphertext) |
+| `EncryptedClientSecret` | AES-256-encrypted OAuth2 Client Secret (Base64-encoded: Salt + IV + Ciphertext) |
+| `MasterPasswordVerifier` | PBKDF2-SHA256 hash for verifying the master password (Base64-encoded: Salt + Hash) |
+| `LastPrinter` | Name of the last used printer |
+| `LabelWidthCm` | Label width in cm |
+| `LabelHeightCm` | Label height in cm |
+| `PaddingMm` | Inner padding in mm (applied on all sides) |
+| `HeaderHeightPercent` | Header bar height as a percentage of label height |
+| `LogoHeightPercent` | Logo area height as a percentage of label height |
+| `LogoPath` | Absolute path to the logo image file |
+| `OrgNameOverrides` | Custom display names per organization (maps org ID → name) |
 
-> **Sicherheitshinweis:** Die API-Zugangsdaten (Client ID und Client Secret) werden mit **AES-256-CBC** verschlüsselt gespeichert. Der Verschlüsselungsschlüssel wird mittels **PBKDF2-HMAC-SHA256** (100 000 Iterationen) aus dem Master-Passwort abgeleitet. Jeder Speichervorgang verwendet einen zufälligen Salt und IV.
+> **Security note:** API credentials (Client ID and Client Secret) are stored **AES-256-CBC encrypted**. The encryption key is derived from the master password via **PBKDF2-HMAC-SHA256** (100,000 iterations). Each save operation uses a random salt and IV.
 
 ---
 
-## Sicherheitskonzept
+## Security Concept
 
-### Verschlüsselung
+### Encryption
 
-Die API-Zugangsdaten werden **niemals im Klartext** auf der Festplatte gespeichert. Stattdessen werden sie durch folgende Verfahren geschützt:
+API credentials are **never stored in plaintext** on disk. They are protected by the following methods:
 
-| Komponente | Verfahren |
+| Component | Method |
 |---|---|
-| **Verschlüsselung** | AES-256-CBC mit zufälligem IV pro Speichervorgang |
-| **Schlüsselableitung** | PBKDF2-HMAC-SHA256, 100 000 Iterationen, 32 Byte Salt |
-| **Passwort-Verifier** | PBKDF2-HMAC-SHA256-Hash (getrennt von Verschlüsselungsschlüssel) |
-| **Vergleich** | Constant-Time-Vergleich zum Schutz gegen Timing-Angriffe |
+| **Encryption** | AES-256-CBC with random IV per save operation |
+| **Key Derivation** | PBKDF2-HMAC-SHA256, 100,000 iterations, 32-byte salt |
+| **Password Verifier** | PBKDF2-HMAC-SHA256 hash (separate from encryption key) |
+| **Comparison** | Constant-time comparison to protect against timing attacks |
 
-### Master-Passwort
+### Master Password
 
-- Das Master-Passwort muss **mindestens 8 Zeichen** lang sein.
-- Es wird **nicht** gespeichert – nur ein kryptografischer Verifier (PBKDF2-Hash).
-- Zum Ändern des Master-Passworts: **🔑 Master-Passwort ändern** in der rechten Spalte.
+- The master password must be **at least 8 characters** long.
+- It is **not** stored – only a cryptographic verifier (PBKDF2 hash).
+- To change the master password: **🔑 Change master password** in the right column.
 
-### Zurücksetzen bei vergessenem Master-Passwort
+### Reset on Forgotten Master Password
 
-Falls das Master-Passwort vergessen wurde, können die Zugangsdaten **nicht** wiederhergestellt werden (dies ist beabsichtigt). Stattdessen:
+If the master password is forgotten, the credentials **cannot** be recovered (this is by design). Instead:
 
-1. Klicken Sie auf **🔄 Zugangsdaten zurücksetzen** (rechte Spalte) oder im Entsperr-Dialog auf **🔄 Zurücksetzen**.
-2. Alle verschlüsselten Zugangsdaten werden unwiderruflich gelöscht.
-3. Geben Sie beim nächsten Verbinden ein neues Master-Passwort und Ihre API-Zugangsdaten ein.
+1. Click **🔄 Reset credentials** (right column) or **🔄 Reset** in the unlock dialog.
+2. All encrypted credentials are permanently deleted.
+3. Enter a new master password and your API credentials the next time you connect.
 
-### Legacy-Migration
+### Legacy Migration
 
-Wenn Sie von einer älteren Version ohne Verschlüsselung upgraden, erkennt das Tool automatisch die unverschlüsselten Zugangsdaten und fordert Sie beim nächsten Verbinden auf, ein Master-Passwort festzulegen. Die bestehenden Zugangsdaten werden dann verschlüsselt gespeichert.
+If you are upgrading from an older version without encryption, the tool automatically detects the unencrypted credentials and prompts you to set a master password the next time you connect. The existing credentials are then encrypted and stored.
 
 ---
 
-## Häufige Probleme
+## Troubleshooting
 
-| Problem | Lösung |
+| Problem | Solution |
 |---|---|
-| „Verbindung fehlgeschlagen" | Prüfen Sie Base URL, Client ID und Client Secret. Stellen Sie sicher, dass die API-App in NinjaOne aktiv ist und die Scopes `monitoring` und `management` hat. |
-| Master-Passwort vergessen | Klicken Sie im Entsperr-Dialog auf **🔄 Zurücksetzen** oder verwenden Sie den Button **🔄 Zugangsdaten zurücksetzen** in der rechten Spalte. Alle gespeicherten Zugangsdaten werden gelöscht und müssen neu eingegeben werden. |
-| Keine Drucker in der Liste | Stellen Sie sicher, dass Windows-Drucker lokal installiert (nicht nur als „Netzwerkfreigabe ohne Treiber") vorhanden sind. |
-| Etikett wird nicht korrekt skaliert | Passen Sie die Etikettenmaße in cm genau an den physischen Etiketten Ihres Druckers an. |
-| Skript startet nicht | Verwenden Sie die Batch-Datei `Start-NinjaOneLabelPrinter.bat` – diese umgeht die Ausführungsrichtlinie automatisch. Alternativ: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
-| Logo erscheint nicht | Stellen Sie sicher, dass der Dateipfad korrekt ist und das Bild ein unterstütztes Format hat (PNG, JPG, BMP). |
+| "Connection failed" | Check Base URL, Client ID, and Client Secret. Make sure the API app in NinjaOne is active and has the scopes `monitoring` and `management`. |
+| Forgotten master password | Click **🔄 Reset** in the unlock dialog or use the **🔄 Reset credentials** button in the right column. All stored credentials will be deleted and must be re-entered. |
+| No printers in the list | Make sure Windows printers are locally installed (not just shared network printers without drivers). |
+| Label is not scaled correctly | Adjust the label dimensions in cm to match the physical labels of your printer exactly. |
+| Script does not start | Use the batch file `Start-NinjaOneLabelPrinter.bat` – it bypasses the execution policy automatically. Alternatively: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
+| Logo does not appear | Make sure the file path is correct and the image is in a supported format (PNG, JPG, BMP). |
 
 ---
 
-## Lizenz
+## License
 
-Dieses Projekt steht unter der [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-*Entwickelt von [t2-schreiner](https://github.com/t2-schreiner)*
+*Developed by [t2-schreiner](https://github.com/t2-schreiner)*

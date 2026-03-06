@@ -2,7 +2,7 @@
 # ============================================================
 # NinjaOne Asset Label Printer
 # ============================================================
-# Konfigurationsdatei: %APPDATA%\NinjaOneLabelPrinter\config.json
+# Configuration file: %APPDATA%\NinjaOneLabelPrinter\config.json
 # ============================================================
 
 Add-Type -AssemblyName PresentationFramework
@@ -11,7 +11,7 @@ Add-Type -AssemblyName WindowsBase
 Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.Windows.Forms
 
-# --- Kryptografie-Funktionen (AES-256 + PBKDF2) ---
+# --- Cryptography functions (AES-256 + PBKDF2) ---
 
 function Protect-String {
     param([string]$PlainText, [string]$MasterPassword)
@@ -104,7 +104,7 @@ function Test-MasterPassword {
     return ($diff -eq 0)
 }
 
-# --- Konfigurationsverwaltung ---
+# --- Configuration management ---
 $configDir  = Join-Path $env:APPDATA "NinjaOneLabelPrinter"
 $configFile = Join-Path $configDir "config.json"
 
@@ -184,7 +184,7 @@ $script:Config = Get-AppConfig
 $script:MasterPassword         = $null
 $script:MasterPasswordVerifier = $null
 
-# --- NinjaOne API Helfer ---
+# --- NinjaOne API helpers ---
 $script:AccessToken = $null
 
 function Connect-NinjaOne {
@@ -201,7 +201,7 @@ function Connect-NinjaOne {
         $script:AccessToken = $response.access_token
         return $true
     } catch {
-        [System.Windows.MessageBox]::Show("Verbindung fehlgeschlagen:`n$($_.Exception.Message)", "Fehler", "OK", "Error")
+        [System.Windows.MessageBox]::Show("Connection failed:`n$($_.Exception.Message)", "Error", "OK", "Error")
         return $false
     }
 }
@@ -237,7 +237,7 @@ function Get-DeviceDisplayName {
     if ($Device.systemName)  { return [string]$Device.systemName }
     if ($Device.displayName) { return [string]$Device.displayName }
     if ($Device.dnsName)     { return [string]$Device.dnsName }
-    return "Gerät-$($Device.id)"
+    return "Device-$($Device.id)"
 }
 
 function Get-SafeOsName {
@@ -291,21 +291,21 @@ function Get-SafeOsName {
             <ColumnDefinition Width="320"/>
         </Grid.ColumnDefinitions>
 
-        <!-- LINKE SPALTE: Organisationen & Geräte -->
+        <!-- LEFT COLUMN: Organizations & Devices -->
         <Border Grid.Column="0" Background="#252540" CornerRadius="0" Margin="0">
             <DockPanel Margin="10">
                 <StackPanel DockPanel.Dock="Top">
-                    <TextBlock Text="⚙ Verbindung" Style="{StaticResource HeaderText}" Margin="0,0,0,6"/>
-                    <Button Name="btnConnect" Content="Mit NinjaOne verbinden" Style="{StaticResource ActionButton}" Margin="0,0,0,10"/>
+                    <TextBlock Text="⚙ Connection" Style="{StaticResource HeaderText}" Margin="0,0,0,6"/>
+                    <Button Name="btnConnect" Content="Connect to NinjaOne" Style="{StaticResource ActionButton}" Margin="0,0,0,10"/>
                     <Separator Background="#444466" Margin="0,0,0,10"/>
-                    <TextBlock Text="🏢 Organisationen" Style="{StaticResource HeaderText}"/>
+                    <TextBlock Text="🏢 Organizations" Style="{StaticResource HeaderText}"/>
                 </StackPanel>
                 <TreeView Name="tvOrganizations" Background="#2a2a3d" Foreground="White"
                           BorderBrush="#444466" FontSize="12" Margin="0,4,0,0"/>
             </DockPanel>
         </Border>
 
-        <!-- MITTLERE SPALTE: Geräteliste + Zuletzt hinzugefügt -->
+        <!-- MIDDLE COLUMN: Device list + Recently added -->
         <Grid Grid.Column="1" Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -314,7 +314,7 @@ function Get-SafeOsName {
                 <RowDefinition Height="180"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" Text="💻 Geräte der Organisation" Style="{StaticResource HeaderText}"/>
+            <TextBlock Grid.Row="0" Text="💻 Organization Devices" Style="{StaticResource HeaderText}"/>
             <DataGrid Name="dgDevices" Grid.Row="1" AutoGenerateColumns="False"
                       Background="#2a2a3d" Foreground="White" RowBackground="#2a2a3d"
                       AlternatingRowBackground="#303050" BorderBrush="#444466"
@@ -330,13 +330,13 @@ function Get-SafeOsName {
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
-                    <DataGridTextColumn Header="Typ" Binding="{Binding NodeClass}" Width="80"/>
+                    <DataGridTextColumn Header="Device Name" Binding="{Binding SystemName}" Width="*"/>
+                    <DataGridTextColumn Header="Type" Binding="{Binding NodeClass}" Width="80"/>
                     <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
             </DataGrid>
 
-            <TextBlock Grid.Row="2" Text="🕐 Zuletzt hinzugefügte Geräte" Style="{StaticResource HeaderText}" Margin="0,10,0,0"/>
+            <TextBlock Grid.Row="2" Text="🕐 Recently Added Devices" Style="{StaticResource HeaderText}" Margin="0,10,0,0"/>
             <DataGrid Name="dgRecent" Grid.Row="3" AutoGenerateColumns="False"
                       Background="#2a2a3d" Foreground="#90ee90" RowBackground="#2a2a3d"
                       AlternatingRowBackground="#303050" BorderBrush="#444466"
@@ -352,30 +352,30 @@ function Get-SafeOsName {
                     </Style>
                 </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Gerätename" Binding="{Binding SystemName}" Width="*"/>
+                    <DataGridTextColumn Header="Device Name" Binding="{Binding SystemName}" Width="*"/>
                     <DataGridTextColumn Header="Organisation" Binding="{Binding OrgName}" Width="120"/>
                     <DataGridTextColumn Header="Asset ID" Binding="{Binding AssetId}" Width="80"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>
 
-        <!-- RECHTE SPALTE: Etiketten-Einstellungen & Vorschau -->
+        <!-- RIGHT COLUMN: Label settings & preview -->
         <Border Grid.Column="2" Background="#252540" CornerRadius="0">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="12">
-                    <TextBlock Text="🏷 Etiketten-Designer" FontSize="15" FontWeight="Bold"
+                    <TextBlock Text="🏷 Label Designer" FontSize="15" FontWeight="Bold"
                                Foreground="#5865f2" Margin="0,0,0,12"/>
 
-                    <!-- Organisationsname Override -->
-                    <TextBlock Text="Organisationsname (überschreibbar):" Style="{StaticResource HeaderText}"/>
+                    <!-- Organization name override -->
+                    <TextBlock Text="Organization name (editable):" Style="{StaticResource HeaderText}"/>
                     <TextBox Name="txtOrgName" Style="{StaticResource InputBox}" Margin="0,0,0,8"/>
 
-                    <!-- Datum Override -->
-                    <TextBlock Text="Datum (Monat/Jahr, überschreibbar):" Style="{StaticResource HeaderText}"/>
+                    <!-- Date override -->
+                    <TextBlock Text="Date (month/year, editable):" Style="{StaticResource HeaderText}"/>
                     <TextBox Name="txtDate" Style="{StaticResource InputBox}" Margin="0,0,0,8"/>
 
-                    <!-- Etikettenmaße -->
-                    <TextBlock Text="Etikettengröße:" Style="{StaticResource HeaderText}"/>
+                    <!-- Label dimensions -->
+                    <TextBlock Text="Label size:" Style="{StaticResource HeaderText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox Name="txtLabelWidth" Style="{StaticResource InputBox}" Width="60" Text="4,0"/>
                         <TextBlock Text=" x " Foreground="White" VerticalAlignment="Center" FontSize="12"/>
@@ -383,15 +383,15 @@ function Get-SafeOsName {
                         <TextBlock Text=" cm" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
                     </StackPanel>
 
-                    <!-- Innenabstand -->
-                    <TextBlock Text="Innenabstand (mm, umlaufend):" Style="{StaticResource HeaderText}"/>
+                    <!-- Inner padding -->
+                    <TextBlock Text="Inner padding (mm, all sides):" Style="{StaticResource HeaderText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox Name="txtPaddingMm" Style="{StaticResource InputBox}" Width="60" Text="0"/>
                         <TextBlock Text=" mm" Foreground="White" VerticalAlignment="Center" FontSize="12"/>
                     </StackPanel>
 
-                    <!-- Kopfzeile / Logo Höhe -->
-                    <TextBlock Text="Kopfzeile / Logo (% der Etikettenhöhe):" Style="{StaticResource HeaderText}"/>
+                    <!-- Header / Logo height -->
+                    <TextBlock Text="Header / Logo (% of label height):" Style="{StaticResource HeaderText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBox Name="txtHeaderPercent" Style="{StaticResource InputBox}" Width="50" Text="22"/>
                         <TextBlock Text=" / " Foreground="White" VerticalAlignment="Center" FontSize="12"/>
@@ -407,15 +407,15 @@ function Get-SafeOsName {
                                 Margin="4,0,0,0" Padding="8,4"/>
                     </StackPanel>
 
-                    <!-- Drucker -->
-                    <TextBlock Text="Drucker:" Style="{StaticResource HeaderText}"/>
+                    <!-- Printer -->
+                    <TextBlock Text="Printer:" Style="{StaticResource HeaderText}"/>
                     <ComboBox Name="cbPrinter" Background="#2a2a3d" Foreground="Black"
                               FontSize="12" Margin="0,0,0,8"/>
 
                     <Separator Background="#444466" Margin="0,8"/>
 
-                    <!-- Vorschau -->
-                    <TextBlock Text="Vorschau:" Style="{StaticResource HeaderText}" Margin="0,4,0,4"/>
+                    <!-- Preview -->
+                    <TextBlock Text="Preview:" Style="{StaticResource HeaderText}" Margin="0,4,0,4"/>
                     <Border Name="borderPreview" Background="#1e1e2e" BorderBrush="#888"
                             BorderThickness="1" HorizontalAlignment="Center"
                             Margin="0,0,0,12" Padding="0">
@@ -424,16 +424,16 @@ function Get-SafeOsName {
                     </Border>
 
                     <!-- Buttons -->
-                    <Button Name="btnPrint" Content="🖨 Etikett(en) drucken"
+                    <Button Name="btnPrint" Content="🖨 Print label(s)"
                             Style="{StaticResource ActionButton}" Background="#2ea043"/>
-                    <Button Name="btnSettings" Content="💾 Einstellungen speichern"
+                    <Button Name="btnSettings" Content="💾 Save settings"
                             Style="{StaticResource ActionButton}" Background="#666680" Margin="0,6,0,0"/>
-                    <Button Name="btnChangePw" Content="🔑 Master-Passwort ändern"
+                    <Button Name="btnChangePw" Content="🔑 Change master password"
                             Style="{StaticResource ActionButton}" Background="#666680" Margin="0,6,0,0"/>
-                    <Button Name="btnReset" Content="🔄 Zugangsdaten zurücksetzen"
+                    <Button Name="btnReset" Content="🔄 Reset credentials"
                             Style="{StaticResource ActionButton}" Background="#cc3333" Margin="0,6,0,0"/>
 
-                    <!-- Copyright-Fußzeile -->
+                    <!-- Copyright footer -->
                     <Separator Background="#444466" Margin="0,12,0,8"/>
                     <TextBlock Text="© Thomas Schreiner, www.t2.at" Foreground="#888"
                                FontSize="10" HorizontalAlignment="Center"/>
@@ -444,11 +444,11 @@ function Get-SafeOsName {
 </Window>
 "@
 
-# --- Fenster laden ---
+# --- Load window ---
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
 
-# Steuerelemente referenzieren
+# Reference controls
 $btnConnect       = $window.FindName("btnConnect")
 $tvOrganizations  = $window.FindName("tvOrganizations")
 $dgDevices        = $window.FindName("dgDevices")
@@ -469,7 +469,7 @@ $btnSettings      = $window.FindName("btnSettings")
 $btnChangePw      = $window.FindName("btnChangePw")
 $btnReset         = $window.FindName("btnReset")
 
-# --- Initialisierung ---
+# --- Initialization ---
 $txtDate.Text = (Get-Date).ToString("MM/yyyy")
 $txtLabelWidth.Text    = $script:Config.LabelWidthCm.ToString()
 $txtLabelHeight.Text   = $script:Config.LabelHeightCm.ToString()
@@ -478,7 +478,7 @@ $txtHeaderPercent.Text = $script:Config.HeaderHeightPercent.ToString()
 $txtLogoPercent.Text   = $script:Config.LogoHeightPercent.ToString()
 $txtLogoPath.Text      = $script:Config.LogoPath
 
-# Drucker laden
+# Load printers
 $printers = (Get-Printer | Where-Object { $_.Type -eq "Local" -or $_.Type -eq "Connection" }).Name
 foreach ($p in $printers) { $cbPrinter.Items.Add($p) | Out-Null }
 if ($script:Config.LastPrinter -and $cbPrinter.Items.Contains($script:Config.LastPrinter)) {
@@ -487,14 +487,14 @@ if ($script:Config.LastPrinter -and $cbPrinter.Items.Contains($script:Config.Las
     $cbPrinter.SelectedIndex = 0
 }
 
-# --- Globale Daten ---
+# --- Global data ---
 $script:Organizations   = @()
 $script:AllDevices      = @()
 $script:OrgLookup       = @{}
 $script:CurrentOrgId    = $null
 $script:OriginalOrgName = ""
 
-# Aktuellen Org-Override in Config merken
+# Store current org name override in config
 function Update-OrgNameOverride {
     if (-not $script:CurrentOrgId) { return }
     $key = "$script:CurrentOrgId"
@@ -508,7 +508,7 @@ function Update-OrgNameOverride {
     }
 }
 
-# --- Verbindung herstellen ---
+# --- Establish connection ---
 $btnConnect.Add_Click({
 
     # ── Step 1: Ensure decrypted credentials are available ──────────────
@@ -519,15 +519,15 @@ $btnConnect.Add_Click({
 
         $mpXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="🔒 Master-Passwort" Height="190" Width="420"
+        Title="🔒 Master Password" Height="190" Width="420"
         WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
     <StackPanel Margin="20">
-        <TextBlock Text="Master-Passwort eingeben:" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
+        <TextBlock Text="Enter master password:" Foreground="White" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,6"/>
         <PasswordBox Name="mpPassword" Background="#2a2a3d" Foreground="White" Padding="6" FontSize="13" Margin="0,0,0,14"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Name="mpReset" Content="🔄 Zurücksetzen" Background="#cc3333" Foreground="White"
+            <Button Name="mpReset" Content="🔄 Reset" Background="#cc3333" Foreground="White"
                     FontSize="12" Padding="12,6" Margin="0,0,8,0" Cursor="Hand" BorderThickness="0"/>
-            <Button Name="mpUnlock" Content="🔓 Entsperren" Background="#5865f2" Foreground="White"
+            <Button Name="mpUnlock" Content="🔓 Unlock" Background="#5865f2" Foreground="White"
                     FontSize="12" Padding="12,6" Cursor="Hand" BorderThickness="0"/>
         </StackPanel>
     </StackPanel>
@@ -537,7 +537,7 @@ $btnConnect.Add_Click({
         $mw = [Windows.Markup.XamlReader]::Load($mr)
         $mw.Owner = $window
 
-        # Enter-Taste im Passwortfeld → Entsperren auslösen
+        # Enter key in password field → trigger unlock
         $mw.FindName("mpPassword").Add_KeyDown({
             param($sender, $e)
             if ($e.Key -eq [System.Windows.Input.Key]::Return) {
@@ -547,9 +547,9 @@ $btnConnect.Add_Click({
 
         $mw.FindName("mpUnlock").Add_Click({
             $pw = $mw.FindName("mpPassword").Password
-            if (-not $pw) { [System.Windows.MessageBox]::Show("Bitte Passwort eingeben.", "Hinweis", "OK", "Warning"); return }
+            if (-not $pw) { [System.Windows.MessageBox]::Show("Please enter password.", "Notice", "OK", "Warning"); return }
             if (-not (Test-MasterPassword -MasterPassword $pw -Verifier $script:Config.MasterPasswordVerifier)) {
-                [System.Windows.MessageBox]::Show("Falsches Master-Passwort!", "Fehler", "OK", "Error"); return
+                [System.Windows.MessageBox]::Show("Incorrect master password!", "Error", "OK", "Error"); return
             }
             try {
                 $script:Config.ClientId     = Unprotect-String -CipherText $script:Config.EncryptedClientId     -MasterPassword $pw
@@ -558,14 +558,14 @@ $btnConnect.Add_Click({
                 $script:MasterPasswordVerifier = $script:Config.MasterPasswordVerifier
                 $mw.DialogResult = $true; $mw.Close()
             } catch {
-                [System.Windows.MessageBox]::Show("Entschlüsselung fehlgeschlagen – Daten beschädigt?`n$($_.Exception.Message)", "Fehler", "OK", "Error")
+                [System.Windows.MessageBox]::Show("Decryption failed – data corrupted?`n$($_.Exception.Message)", "Error", "OK", "Error")
             }
         })
 
         $mw.FindName("mpReset").Add_Click({
             $answer = [System.Windows.MessageBox]::Show(
-                "Alle gespeicherten Zugangsdaten werden unwiderruflich gelöscht.`nFortfahren?",
-                "Zugangsdaten zurücksetzen", "YesNo", "Warning")
+                "All stored credentials will be permanently deleted.`nContinue?",
+                "Reset Credentials", "YesNo", "Warning")
             if ($answer -eq "Yes") {
                 $script:Config.ClientId = ""; $script:Config.ClientSecret = ""
                 $script:Config.EncryptedClientId = ""; $script:Config.EncryptedClientSecret = ""
@@ -586,17 +586,17 @@ $btnConnect.Add_Click({
     if ($script:Config.ClientId -and $script:Config.ClientSecret -and -not $script:MasterPassword) {
         $migrateXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="🔐 Sicherheits-Upgrade" Height="260" Width="440"
+        Title="🔐 Security Upgrade" Height="260" Width="440"
         WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
     <StackPanel Margin="20">
-        <TextBlock Text="🔐 Master-Passwort festlegen" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
-        <TextBlock Text="Ihre API-Zugangsdaten werden künftig AES-256-verschlüsselt gespeichert."
+        <TextBlock Text="🔐 Set Master Password" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock Text="Your API credentials will be stored using AES-256 encryption."
                    Foreground="#999" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"/>
-        <TextBlock Text="Master-Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Master password (min. 8 characters):" Foreground="White" FontSize="12"/>
         <PasswordBox Name="mMasterPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
-        <TextBlock Text="Master-Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Repeat master password:" Foreground="White" FontSize="12"/>
         <PasswordBox Name="mMasterPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,12"/>
-        <Button Name="mSave" Content="🔒 Verschlüsseln" Background="#5865f2" Foreground="White"
+        <Button Name="mSave" Content="🔒 Encrypt" Background="#5865f2" Foreground="White"
                 FontSize="12" Padding="14,6" HorizontalAlignment="Right" Cursor="Hand" BorderThickness="0"/>
     </StackPanel>
 </Window>
@@ -607,8 +607,8 @@ $btnConnect.Add_Click({
         $mgw.FindName("mSave").Add_Click({
             $p1 = $mgw.FindName("mMasterPw1").Password
             $p2 = $mgw.FindName("mMasterPw2").Password
-            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
-            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Die Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Password must be at least 8 characters long.", "Notice", "OK", "Warning"); return }
+            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Passwords do not match.", "Notice", "OK", "Warning"); return }
             $script:MasterPassword         = $p1
             $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $p1
             Save-AppConfig $script:Config
@@ -621,25 +621,25 @@ $btnConnect.Add_Click({
     if (-not $script:Config.ClientId -or -not $script:Config.ClientSecret) {
         $setupXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="NinjaOne API Einrichtung" Height="500" Width="440"
+        Title="NinjaOne API Setup" Height="500" Width="440"
         WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
     <StackPanel Margin="20">
-        <TextBlock Text="🔐 Master-Passwort festlegen" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
-        <TextBlock Text="Dieses Passwort schützt Ihre API-Zugangsdaten (AES-256)."
+        <TextBlock Text="🔐 Set Master Password" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,4"/>
+        <TextBlock Text="This password protects your API credentials (AES-256)."
                    Foreground="#999" FontSize="11" Margin="0,0,0,8"/>
-        <TextBlock Text="Master-Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Master password (min. 8 characters):" Foreground="White" FontSize="12"/>
         <PasswordBox Name="sMasterPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
-        <TextBlock Text="Master-Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Repeat master password:" Foreground="White" FontSize="12"/>
         <PasswordBox Name="sMasterPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,12"/>
         <Separator Background="#444466" Margin="0,0,0,12"/>
-        <TextBlock Text="🔗 NinjaOne API Zugangsdaten" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
+        <TextBlock Text="🔗 NinjaOne API Credentials" Foreground="#5865f2" FontSize="14" FontWeight="Bold" Margin="0,0,0,8"/>
         <TextBlock Text="Base URL:" Foreground="White" FontSize="12"/>
         <TextBox Name="sBaseUrl" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
         <TextBlock Text="Client ID:" Foreground="White" FontSize="12"/>
         <TextBox Name="sClientId" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
         <TextBlock Text="Client Secret:" Foreground="White" FontSize="12"/>
         <PasswordBox Name="sClientSecret" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
-        <Button Name="sSave" Content="🔒 Verschlüsseln und Verbinden" Background="#5865f2" Foreground="White"
+        <Button Name="sSave" Content="🔒 Encrypt and Connect" Background="#5865f2" Foreground="White"
                 FontSize="12" Padding="14,6" HorizontalAlignment="Right" Margin="0,8,0,0" Cursor="Hand" BorderThickness="0"/>
     </StackPanel>
 </Window>
@@ -651,11 +651,11 @@ $btnConnect.Add_Click({
         $sw.FindName("sSave").Add_Click({
             $p1 = $sw.FindName("sMasterPw1").Password
             $p2 = $sw.FindName("sMasterPw2").Password
-            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
-            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Die Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+            if ($p1.Length -lt 8) { [System.Windows.MessageBox]::Show("Password must be at least 8 characters long.", "Notice", "OK", "Warning"); return }
+            if ($p1 -ne $p2)     { [System.Windows.MessageBox]::Show("Passwords do not match.", "Notice", "OK", "Warning"); return }
             $cid = $sw.FindName("sClientId").Text.Trim()
             $csec = $sw.FindName("sClientSecret").Password
-            if (-not $cid -or -not $csec) { [System.Windows.MessageBox]::Show("Client ID und Client Secret sind erforderlich.", "Hinweis", "OK", "Warning"); return }
+            if (-not $cid -or -not $csec) { [System.Windows.MessageBox]::Show("Client ID and Client Secret are required.", "Notice", "OK", "Warning"); return }
             $script:Config.NinjaBaseUrl  = $sw.FindName("sBaseUrl").Text.Trim()
             $script:Config.ClientId      = $cid
             $script:Config.ClientSecret  = $csec
@@ -667,18 +667,18 @@ $btnConnect.Add_Click({
         if (-not $sw.ShowDialog()) { return }
     }
 
-    # Token holen
+    # Get token
     $ok = Connect-NinjaOne -BaseUrl $script:Config.NinjaBaseUrl `
                            -ClientId $script:Config.ClientId `
                            -ClientSecret $script:Config.ClientSecret
     if (-not $ok) { return }
 
-    # Organisationen laden
+    # Load organizations
     $script:Organizations = @(Get-NinjaOrganizations)
     $script:OrgLookup = @{}
     foreach ($org in $script:Organizations) { $script:OrgLookup[$org.id] = $org.name }
 
-    # TreeView befüllen
+    # Populate TreeView
     $tvOrganizations.Items.Clear()
     foreach ($org in ($script:Organizations | Sort-Object name)) {
         $item = New-Object System.Windows.Controls.TreeViewItem
@@ -688,7 +688,7 @@ $btnConnect.Add_Click({
         $tvOrganizations.Items.Add($item) | Out-Null
     }
 
-    # Alle Geräte für "Zuletzt hinzugefügt" laden
+    # Load all devices for "Recently added"
     try {
         $script:AllDevices = @(Get-NinjaAllDevicesDetailed)
         $recentRaw = @($script:AllDevices |
@@ -705,18 +705,18 @@ $btnConnect.Add_Click({
         }
         $dgRecent.ItemsSource = $recentDevices
     } catch {
-        # Fallback: Zuletzt-Liste leer lassen
+        # Fallback: leave recent list empty
     }
 
-    [System.Windows.MessageBox]::Show("Verbunden! $($script:Organizations.Count) Organisationen geladen.", "Erfolg", "OK", "Information")
+    [System.Windows.MessageBox]::Show("Connected! $($script:Organizations.Count) organizations loaded.", "Success", "OK", "Information")
 })
 
-# --- Organisation auswählen → Geräte laden ---
+# --- Select organization → Load devices ---
 $tvOrganizations.Add_SelectedItemChanged({
     $selected = $tvOrganizations.SelectedItem
     if (-not $selected -or -not $selected.Tag) { return }
 
-    # Vorherigen Override merken
+    # Store previous override
     Update-OrgNameOverride
 
     $orgId   = $selected.Tag
@@ -724,7 +724,7 @@ $tvOrganizations.Add_SelectedItemChanged({
     $script:CurrentOrgId    = $orgId
     $script:OriginalOrgName = $orgName
 
-    # Override aus Config laden, falls vorhanden
+    # Load override from config if available
     $key = "$orgId"
     if ($script:Config.OrgNameOverrides.ContainsKey($key)) {
         $txtOrgName.Text = $script:Config.OrgNameOverrides[$key]
@@ -746,34 +746,34 @@ $tvOrganizations.Add_SelectedItemChanged({
         }
         $dgDevices.ItemsSource = $deviceList
     } catch {
-        [System.Windows.MessageBox]::Show("Fehler beim Laden der Geräte:`n$($_.Exception.Message)", "Fehler", "OK", "Error")
+        [System.Windows.MessageBox]::Show("Error loading devices:`n$($_.Exception.Message)", "Error", "OK", "Error")
     }
 })
 
-# --- Logo auswählen ---
+# --- Select logo ---
 $btnSelectLogo.Add_Click({
     $dlg = New-Object Microsoft.Win32.OpenFileDialog
-    $dlg.Filter = "Bilder|*.png;*.jpg;*.jpeg;*.bmp;*.gif|Alle Dateien|*.*"
-    $dlg.Title  = "Logo auswählen"
+    $dlg.Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All Files|*.*"
+    $dlg.Title  = "Select Logo"
     if ($dlg.ShowDialog()) {
         $txtLogoPath.Text = $dlg.FileName
         $script:Config.LogoPath = $dlg.FileName
     }
 })
 
-# --- Hilfsfunktion: Zahl parsen (Komma oder Punkt → InvariantCulture) ---
+# --- Helper: Parse number (comma or dot → InvariantCulture) ---
 function Parse-NumberInvariant([string]$Text) {
     [double]::Parse($Text.Replace(",", "."), [System.Globalization.CultureInfo]::InvariantCulture)
 }
 
-# --- Vorschau zeichnen ---
+# --- Draw preview ---
 function Update-LabelPreview {
     $canvasPreview.Children.Clear()
 
     $canvasMaxW = $canvasPreview.Width    # 280
     $canvasMaxH = $canvasPreview.Height   # 175
 
-    # Etikettengröße parsen
+    # Parse label size
     try {
         $labelWcm = Parse-NumberInvariant $txtLabelWidth.Text
         $labelHcm = Parse-NumberInvariant $txtLabelHeight.Text
@@ -781,7 +781,7 @@ function Update-LabelPreview {
     if ($labelWcm -le 0) { $labelWcm = 4.0 }
     if ($labelHcm -le 0) { $labelHcm = 2.5 }
 
-    # Einstellungen parsen
+    # Parse settings
     try { $paddingMm = Parse-NumberInvariant $txtPaddingMm.Text } catch { $paddingMm = 0 }
     try { $headerPct = Parse-NumberInvariant $txtHeaderPercent.Text } catch { $headerPct = 22 }
     try { $logoPct   = Parse-NumberInvariant $txtLogoPercent.Text } catch { $logoPct = 22 }
@@ -789,7 +789,7 @@ function Update-LabelPreview {
     if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
     if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
 
-    # Canvas-Größe an Etikettenproportionen anpassen
+    # Adjust canvas size to label proportions
     $labelAspect  = $labelWcm / $labelHcm
     $canvasAspect = $canvasMaxW / $canvasMaxH
     if ($labelAspect -gt $canvasAspect) {
@@ -802,12 +802,12 @@ function Update-LabelPreview {
     $offsetX = ($canvasMaxW - $cW) / 2
     $offsetY = ($canvasMaxH - $cH) / 2
 
-    # Padding in Canvas-Koordinaten (mm → cm, dann proportional skalieren)
+    # Padding in canvas coordinates (mm → cm, then proportional scaling)
     $paddingCm = $paddingMm / 10.0
     $scale     = $cW / $labelWcm   # Canvas-Pixel pro cm
     $padPx     = $paddingCm * $scale
 
-    # Inhaltsbereich nach Padding
+    # Content area after padding
     $contentX = $padPx
     $contentY = $padPx
     $contentW = $cW - 2 * $padPx
@@ -815,7 +815,7 @@ function Update-LabelPreview {
     if ($contentW -lt 10) { $contentW = 10 }
     if ($contentH -lt 10) { $contentH = 10 }
 
-    # Hintergrund weiß
+    # White background
     $bg = New-Object System.Windows.Shapes.Rectangle
     $bg.Width  = $cW
     $bg.Height = $cH
@@ -824,7 +824,7 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($bg, $offsetY)
     $canvasPreview.Children.Add($bg) | Out-Null
 
-    # Rahmen um den Inhaltsbereich (identisch mit Drucklogik)
+    # Border around content area (identical to print logic)
     $border = New-Object System.Windows.Shapes.Rectangle
     $border.Width  = $contentW
     $border.Height = $contentH
@@ -834,10 +834,10 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($border, $offsetY + $contentY)
     $canvasPreview.Children.Add($border) | Out-Null
 
-    # --- Proportionale Berechnung (identisch mit Drucklogik) ---
-    # Alle Positionen/Größen relativ zu contentW/contentH, gleiche Formeln wie beim Druck
+    # --- Proportional calculation (identical to print logic) ---
+    # All positions/sizes relative to contentW/contentH, same formulas as in print
 
-    # Oberer Balken mit Organisationsname
+    # Top bar with organization name
     $headerH = [Math]::Max(8, $contentH * $headerPct / 100)
     $header = New-Object System.Windows.Shapes.Rectangle
     $header.Width  = $contentW
@@ -847,10 +847,10 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($header, $offsetY + $contentY)
     $canvasPreview.Children.Add($header) | Out-Null
 
-    # Org-Name: Schriftgröße proportional (GDI+ pt → WPF px: × 4/3)
+    # Org name: proportional font size (GDI+ pt → WPF px: × 4/3)
     $orgFontPt = [Math]::Max(7, $headerH * 0.45)
     $orgFontPx = $orgFontPt * (4.0 / 3.0)
-    $orgTextW  = $contentW - 2  # kleiner Innenrand, damit der Text nicht über den Rahmen ragt
+    $orgTextW  = $contentW - 2  # small inner margin so text does not overflow the border
     $orgText = New-Object System.Windows.Controls.TextBlock
     $orgText.Text          = $txtOrgName.Text
     $orgText.Foreground    = [System.Windows.Media.Brushes]::White
@@ -861,7 +861,7 @@ function Update-LabelPreview {
     $orgText.TextAlignment = [System.Windows.TextAlignment]::Center
     $orgText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
 
-    # Vertikal zentriert im Header
+    # Vertically centered in header
     $orgText.Measure([System.Windows.Size]::new($orgTextW, [double]::PositiveInfinity))
     $orgTextH = $orgText.DesiredSize.Height
     $orgTopOffset = [Math]::Max(0, ($headerH - $orgTextH) / 2)
@@ -869,20 +869,20 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($orgText, $offsetY + $contentY + $orgTopOffset)
     $canvasPreview.Children.Add($orgText) | Out-Null
 
-    # Gerätename ermitteln
+    # Determine device name
     $selectedDevices = @()
     if ($dgDevices.SelectedItems.Count -gt 0) {
         $selectedDevices = $dgDevices.SelectedItems
     } elseif ($dgRecent.SelectedItems.Count -gt 0) {
         $selectedDevices = $dgRecent.SelectedItems
     }
-    $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "GERÄTENAME" }
+    $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "DEVICE NAME" }
 
-    # Gerätename: Schriftgröße proportional mit Auto-Shrink
+    # Device name: proportional font size with auto-shrink
     $devFontPt = [Math]::Max(8, $contentH * 0.15)
     $devFontPx = $devFontPt * (4.0 / 3.0)
 
-    # Auto-Shrink: Schriftgröße verkleinern, falls Text zu breit
+    # Auto-shrink: reduce font size if text is too wide
     $devAvailW = $contentW - 10
     $minDevFontPx = 6
     $tempText = New-Object System.Windows.Controls.TextBlock
@@ -907,7 +907,7 @@ function Update-LabelPreview {
     $deviceText.TextAlignment = [System.Windows.TextAlignment]::Center
     $deviceText.TextTrimming  = [System.Windows.TextTrimming]::CharacterEllipsis
 
-    # Vertikal zentriert im mittleren Bereich (zwischen Header und Fußzeile)
+    # Vertically centered in middle area (between header and footer)
     $deviceText.Measure([System.Windows.Size]::new($contentW, [double]::PositiveInfinity))
     $devTextH = $deviceText.DesiredSize.Height
     $middleTop = $contentY + $headerH
@@ -918,7 +918,7 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($deviceText, $offsetY + $devTopOffset)
     $canvasPreview.Children.Add($deviceText) | Out-Null
 
-    # Datum links unten
+    # Date bottom-left
     $dateFontPt = [Math]::Max(5, $contentH * 0.10)
     $dateFontPx = $dateFontPt * (4.0 / 3.0)
     $dateText = New-Object System.Windows.Controls.TextBlock
@@ -933,7 +933,7 @@ function Update-LabelPreview {
     [System.Windows.Controls.Canvas]::SetTop($dateText, $offsetY + $contentY + $contentH - $dateTextH - 4)
     $canvasPreview.Children.Add($dateText) | Out-Null
 
-    # Logo rechts unten
+    # Logo bottom-right
     if ($txtLogoPath.Text -and (Test-Path $txtLogoPath.Text)) {
         try {
             $logoH = $footerH
@@ -956,7 +956,7 @@ function Update-LabelPreview {
         } catch { }
     }
 
-    # Größenangabe (außerhalb des Etiketts, unterhalb)
+    # Size indicator (outside the label, below)
     $sizeText = New-Object System.Windows.Controls.TextBlock
     $sizeText.Text       = "$($txtLabelWidth.Text) x $($txtLabelHeight.Text) cm"
     $sizeText.Foreground = [System.Windows.Media.Brushes]::Gray
@@ -968,7 +968,7 @@ function Update-LabelPreview {
     $canvasPreview.Children.Add($sizeText) | Out-Null
 }
 
-# --- Vorschau automatisch aktualisieren bei Werteänderungen ---
+# --- Auto-update preview on value changes ---
 $txtOrgName.Add_TextChanged({ Update-LabelPreview })
 $txtDate.Add_TextChanged({ Update-LabelPreview })
 $txtLabelWidth.Add_TextChanged({ Update-LabelPreview })
@@ -985,12 +985,12 @@ $dgDevices.Add_SelectionChanged({
     Update-LabelPreview
 })
 $dgRecent.Add_SelectionChanged({
-    # Beim Klick auf "Zuletzt hinzugefügt" → OrgName übernehmen und obere Liste deselektieren
+    # On click on "Recently added" → apply org name and deselect upper list
     if ($dgRecent.SelectedItems.Count -gt 0) {
         $dgDevices.UnselectAll()
     }
     if ($dgRecent.SelectedItem) {
-        # Vorherigen Override merken
+        # Store previous override
         Update-OrgNameOverride
 
         $devOrgId   = $dgRecent.SelectedItem.RawDevice.organizationId
@@ -998,7 +998,7 @@ $dgRecent.Add_SelectionChanged({
         $script:CurrentOrgId    = $devOrgId
         $script:OriginalOrgName = $devOrgName
 
-        # Override aus Config laden, falls vorhanden
+        # Load override from config if available
         $key = "$devOrgId"
         if ($script:Config.OrgNameOverrides.ContainsKey($key)) {
             $txtOrgName.Text = $script:Config.OrgNameOverrides[$key]
@@ -1009,15 +1009,15 @@ $dgRecent.Add_SelectionChanged({
     Update-LabelPreview
 })
 
-# --- Drucken ---
+# --- Print ---
 $btnPrint.Add_Click({
     $selectedPrinter = $cbPrinter.SelectedItem
     if (-not $selectedPrinter) {
-        [System.Windows.MessageBox]::Show("Bitte Drucker auswählen!", "Hinweis", "OK", "Warning")
+        [System.Windows.MessageBox]::Show("Please select a printer!", "Notice", "OK", "Warning")
         return
     }
 
-    # Geräte sammeln (aus beiden DataGrids)
+    # Collect devices (from both DataGrids)
     $devicesToPrint = @()
     if ($dgDevices.SelectedItems.Count -gt 0) {
         $devicesToPrint += $dgDevices.SelectedItems | ForEach-Object { $_.SystemName }
@@ -1027,22 +1027,22 @@ $btnPrint.Add_Click({
     }
 
     if ($devicesToPrint.Count -eq 0) {
-        [System.Windows.MessageBox]::Show("Bitte mindestens ein Gerät auswählen!", "Hinweis", "OK", "Warning")
+        [System.Windows.MessageBox]::Show("Please select at least one device!", "Notice", "OK", "Warning")
         return
     }
 
-    # Drucker und Org-Override merken
+    # Store printer and org override
     Update-OrgNameOverride
     $script:Config.LastPrinter = $selectedPrinter
     Save-AppConfig $script:Config
 
-    # Druckmaße berechnen (cm → 1/100 Zoll, 1cm = 0.3937 Zoll)
+    # Calculate print dimensions (cm → 1/100 inch, 1cm = 0.3937 inch)
     $labelWcm = Parse-NumberInvariant $txtLabelWidth.Text
     $labelHcm = Parse-NumberInvariant $txtLabelHeight.Text
     $labelW100 = [int]($labelWcm * 0.3937 * 100)
     $labelH100 = [int]($labelHcm * 0.3937 * 100)
 
-    # Konfigurierbare Werte erfassen
+    # Capture configurable values
     try { $paddingMm = Parse-NumberInvariant $txtPaddingMm.Text } catch { $paddingMm = 0 }
     try { $headerPct = Parse-NumberInvariant $txtHeaderPercent.Text } catch { $headerPct = 22 }
     try { $logoPct   = Parse-NumberInvariant $txtLogoPercent.Text } catch { $logoPct = 22 }
@@ -1050,7 +1050,7 @@ $btnPrint.Add_Click({
     if ($headerPct -lt 0 -or $headerPct -gt 50) { $headerPct = 22 }
     if ($logoPct -lt 0 -or $logoPct -gt 50) { $logoPct = 22 }
 
-    # Padding in 1/100 Zoll (mm → 1/100 inch: mm / 25.4 * 100)
+    # Padding in 1/100 inch (mm → 1/100 inch: mm / 25.4 * 100)
     $pad100 = [int]($paddingMm / 25.4 * 100)
 
     foreach ($devName in $devicesToPrint) {
@@ -1073,7 +1073,7 @@ $btnPrint.Add_Click({
             $pageW = $e.PageBounds.Width
             $pageH = $e.PageBounds.Height
 
-            # Inhaltsbereich nach Padding
+            # Content area after padding
             $cx = $currentPad
             $cy = $currentPad
             $w  = $pageW - 2 * $currentPad
@@ -1081,15 +1081,15 @@ $btnPrint.Add_Click({
             if ($w -lt 10) { $w = 10 }
             if ($h -lt 10) { $h = 10 }
 
-            # Rahmen um den Inhaltsbereich
+            # Border around content area
             $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::Black, 1)
             $g.DrawRectangle($pen, $cx, $cy, $w - 1, $h - 1)
 
-            # Oberer Balken
+            # Top bar
             $headerH = [int]($h * $currentHeaderPct / 100)
             $g.FillRectangle([System.Drawing.Brushes]::Black, $cx, $cy, $w - 1, $headerH)
 
-            # Org-Name im Balken
+            # Org name in bar
             $orgFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(7, $headerH * 0.45 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
             try {
                 $orgSize = $g.MeasureString($currentOrgName, $orgFont)
@@ -1097,7 +1097,7 @@ $btnPrint.Add_Click({
                     [int]($cx + ($w - $orgSize.Width) / 2), [int]($cy + ($headerH - $orgSize.Height) / 2))
             } finally { $orgFont.Dispose() }
 
-            # Gerätename mittig mit Auto-Shrink
+            # Device name centered with auto-shrink
             $devFontSize = [Math]::Max(8, $h * 0.15 * 96.0 / 100.0)
             $devFont = New-Object System.Drawing.Font("Segoe UI", $devFontSize, [System.Drawing.FontStyle]::Bold)
             $devSize = $g.MeasureString($currentDevName, $devFont)
@@ -1109,7 +1109,7 @@ $btnPrint.Add_Click({
                 $devSize = $g.MeasureString($currentDevName, $devFont)
             }
 
-            # Vertikale Zentrierung im mittleren Bereich (zwischen Header und Fußzeile)
+            # Vertical centering in middle area (between header and footer)
             $footerH = [int]($h * $currentLogoPct / 100)
             $middleTop = $cy + $headerH
             $middleH = $h - $headerH - $footerH
@@ -1118,7 +1118,7 @@ $btnPrint.Add_Click({
                     [int]($cx + ($w - $devSize.Width) / 2), [int]($middleTop + ($middleH - $devSize.Height) / 2))
             } finally { $devFont.Dispose() }
 
-            # Datum links unten
+            # Date bottom-left
             $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.10 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
             try {
                 $dateSize = $g.MeasureString($currentDate, $dateFont)
@@ -1126,7 +1126,7 @@ $btnPrint.Add_Click({
                     $cx + 6, [int]($cy + $h - $dateSize.Height - 4))
             } finally { $dateFont.Dispose() }
 
-            # Logo rechts unten
+            # Logo bottom-right
             if ($currentLogo -and (Test-Path $currentLogo)) {
                 try {
                     $logo = [System.Drawing.Image]::FromFile($currentLogo)
@@ -1141,15 +1141,15 @@ $btnPrint.Add_Click({
         try {
             $printDoc.Print()
         } catch {
-            [System.Windows.MessageBox]::Show("Druckfehler: $($_.Exception.Message)", "Fehler", "OK", "Error")
+            [System.Windows.MessageBox]::Show("Print error: $($_.Exception.Message)", "Error", "OK", "Error")
             return
         }
     }
 
-    [System.Windows.MessageBox]::Show("$($devicesToPrint.Count) Etikett(en) gedruckt!", "Fertig", "OK", "Information")
+    [System.Windows.MessageBox]::Show("$($devicesToPrint.Count) label(s) printed!", "Done", "OK", "Information")
 })
 
-# --- Einstellungen speichern ---
+# --- Save settings ---
 $btnSettings.Add_Click({
     $script:Config.LabelWidthCm       = Parse-NumberInvariant $txtLabelWidth.Text
     $script:Config.LabelHeightCm      = Parse-NumberInvariant $txtLabelHeight.Text
@@ -1159,14 +1159,14 @@ $btnSettings.Add_Click({
     $script:Config.LogoPath            = $txtLogoPath.Text
     $script:Config.LastPrinter         = $cbPrinter.SelectedItem
     Save-AppConfig $script:Config
-    [System.Windows.MessageBox]::Show("Einstellungen gespeichert!", "OK", "OK", "Information")
+    [System.Windows.MessageBox]::Show("Settings saved!", "OK", "OK", "Information")
 })
 
-# --- Zugangsdaten zurücksetzen ---
+# --- Reset credentials ---
 $btnReset.Add_Click({
     $answer = [System.Windows.MessageBox]::Show(
-        "Alle gespeicherten API-Zugangsdaten und das Master-Passwort werden unwiderruflich gelöscht.`nFortfahren?",
-        "Zugangsdaten zurücksetzen", "YesNo", "Warning")
+        "All stored API credentials and the master password will be permanently deleted.`nContinue?",
+        "Reset Credentials", "YesNo", "Warning")
     if ($answer -ne "Yes") { return }
     $script:Config.ClientId = ""; $script:Config.ClientSecret = ""
     $script:Config.EncryptedClientId = ""; $script:Config.EncryptedClientSecret = ""
@@ -1177,27 +1177,27 @@ $btnReset.Add_Click({
     $tvOrganizations.Items.Clear()
     $dgDevices.ItemsSource  = $null
     $dgRecent.ItemsSource   = $null
-    [System.Windows.MessageBox]::Show("Zugangsdaten wurden gelöscht. Bitte erneut verbinden.", "Zurückgesetzt", "OK", "Information")
+    [System.Windows.MessageBox]::Show("Credentials deleted. Please reconnect.", "Reset", "OK", "Information")
 })
 
-# --- Master-Passwort ändern ---
+# --- Change master password ---
 $btnChangePw.Add_Click({
     if (-not $script:MasterPassword) {
-        [System.Windows.MessageBox]::Show("Kein Master-Passwort gesetzt. Bitte zuerst verbinden.", "Hinweis", "OK", "Warning")
+        [System.Windows.MessageBox]::Show("No master password set. Please connect first.", "Notice", "OK", "Warning")
         return
     }
     $cpXaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        Title="🔑 Master-Passwort ändern" Height="300" Width="440"
+        Title="🔑 Change Master Password" Height="300" Width="440"
         WindowStartupLocation="CenterOwner" Background="#1e1e2e" ResizeMode="NoResize">
     <StackPanel Margin="20">
-        <TextBlock Text="Aktuelles Passwort:" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Current password:" Foreground="White" FontSize="12"/>
         <PasswordBox Name="cpOldPw" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,8"/>
-        <TextBlock Text="Neues Passwort (min. 8 Zeichen):" Foreground="White" FontSize="12"/>
+        <TextBlock Text="New password (min. 8 characters):" Foreground="White" FontSize="12"/>
         <PasswordBox Name="cpNewPw1" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,4"/>
-        <TextBlock Text="Neues Passwort wiederholen:" Foreground="White" FontSize="12"/>
+        <TextBlock Text="Repeat new password:" Foreground="White" FontSize="12"/>
         <PasswordBox Name="cpNewPw2" Background="#2a2a3d" Foreground="White" Padding="4" FontSize="12" Margin="0,2,0,14"/>
-        <Button Name="cpSave" Content="🔑 Passwort ändern" Background="#5865f2" Foreground="White"
+        <Button Name="cpSave" Content="🔑 Change Password" Background="#5865f2" Foreground="White"
                 FontSize="12" Padding="14,6" HorizontalAlignment="Right" Cursor="Hand" BorderThickness="0"/>
     </StackPanel>
 </Window>
@@ -1210,23 +1210,23 @@ $btnChangePw.Add_Click({
         $newP1 = $cpw.FindName("cpNewPw1").Password
         $newP2 = $cpw.FindName("cpNewPw2").Password
         if ($oldPw -ne $script:MasterPassword) {
-            [System.Windows.MessageBox]::Show("Aktuelles Passwort ist falsch.", "Fehler", "OK", "Error"); return
+            [System.Windows.MessageBox]::Show("Current password is incorrect.", "Error", "OK", "Error"); return
         }
-        if ($newP1.Length -lt 8) { [System.Windows.MessageBox]::Show("Das neue Passwort muss mindestens 8 Zeichen lang sein.", "Hinweis", "OK", "Warning"); return }
-        if ($newP1 -ne $newP2)  { [System.Windows.MessageBox]::Show("Die neuen Passwörter stimmen nicht überein.", "Hinweis", "OK", "Warning"); return }
+        if ($newP1.Length -lt 8) { [System.Windows.MessageBox]::Show("New password must be at least 8 characters long.", "Notice", "OK", "Warning"); return }
+        if ($newP1 -ne $newP2)  { [System.Windows.MessageBox]::Show("New passwords do not match.", "Notice", "OK", "Warning"); return }
         $script:MasterPassword         = $newP1
         $script:MasterPasswordVerifier = New-MasterPasswordVerifier -MasterPassword $newP1
         Save-AppConfig $script:Config
-        [System.Windows.MessageBox]::Show("Master-Passwort wurde erfolgreich geändert!", "Erfolg", "OK", "Information")
+        [System.Windows.MessageBox]::Show("Master password changed successfully!", "Success", "OK", "Information")
         $cpw.DialogResult = $true; $cpw.Close()
     })
     $cpw.ShowDialog() | Out-Null
 })
 
-# --- Initiale Vorschau ---
+# --- Initial preview ---
 Update-LabelPreview
 
-# --- Beim Start automatisch Passwort-Dialog öffnen (wenn verschlüsselte Zugangsdaten vorhanden) ---
+# --- Auto-open password dialog on start (if encrypted credentials exist) ---
 $window.Add_ContentRendered({
     if ((-not $script:Config.ClientId -or -not $script:Config.ClientSecret) -and
         $script:Config.MasterPasswordVerifier -and $script:Config.EncryptedClientId) {
@@ -1234,11 +1234,11 @@ $window.Add_ContentRendered({
     }
 })
 
-# --- Beim Schließen Org-Override speichern ---
+# --- Save org override on close ---
 $window.Add_Closing({
     Update-OrgNameOverride
     Save-AppConfig $script:Config
 })
 
-# --- Fenster anzeigen ---
+# --- Show window ---
 $window.ShowDialog() | Out-Null

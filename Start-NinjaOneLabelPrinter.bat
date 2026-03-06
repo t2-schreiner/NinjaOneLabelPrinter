@@ -2,10 +2,10 @@
 :: ============================================================
 :: NinjaOne Asset Label Printer – Starter
 :: ============================================================
-:: Startet das PowerShell-Skript direkt per Doppelklick.
-:: Die ExecutionPolicy wird nur für diese Sitzung auf Bypass
-:: gesetzt – die systemweite Richtlinie bleibt unverändert.
-:: POWERSHELL 7 wird benötigt!
+:: Launches the PowerShell script via double-click.
+:: The ExecutionPolicy is set to Bypass for this session only –
+:: the system-wide policy remains unchanged.
+:: POWERSHELL 7 is required!
 :: ============================================================
 
 start "" pwsh -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0NinjaOneLabelPrinter.ps1"
