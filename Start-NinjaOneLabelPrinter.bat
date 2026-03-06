@@ -7,6 +7,4 @@
 :: gesetzt – die systemweite Richtlinie bleibt unverändert.
 :: ============================================================
 
-pushd "%~dp0"
 start "" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0NinjaOneLabelPrinter.ps1"
-popd
