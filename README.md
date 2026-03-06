@@ -2,6 +2,9 @@
 
 A PowerShell-based WPF tool for printing asset labels for devices managed in [NinjaOne RMM](https://www.ninjarmm.com/).
 
+<img width="629" height="838" alt="image" src="https://github.com/user-attachments/assets/bfb1979f-51ae-4a54-bc8d-fdfe44f6dc30" />
+
+
 ---
 
 ## Table of Contents
