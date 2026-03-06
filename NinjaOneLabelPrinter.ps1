@@ -222,6 +222,14 @@ function Get-NinjaAllDevicesDetailed {
     return Invoke-NinjaApi -Endpoint "/devices-detailed"
 }
 
+function Get-DeviceDisplayName {
+    param($Device)
+    if ($Device.systemName)  { return [string]$Device.systemName }
+    if ($Device.displayName) { return [string]$Device.displayName }
+    if ($Device.dnsName)     { return [string]$Device.dnsName }
+    return "Gerät-$($Device.id)"
+}
+
 function Get-SafeOsName {
     param($OsObject)
     try {
@@ -663,7 +671,7 @@ $btnConnect.Add_Click({
         $recentDevices = [System.Collections.ArrayList]::new()
         foreach ($dev in $recentRaw) {
             [void]$recentDevices.Add([PSCustomObject]@{
-                SystemName = [string]$dev.systemName
+                SystemName = Get-DeviceDisplayName -Device $dev
                 OrgName    = if ($script:OrgLookup.ContainsKey($dev.organizationId)) { $script:OrgLookup[$dev.organizationId] } else { "?" }
                 AssetId    = $dev.id
                 RawDevice  = $dev
@@ -692,7 +700,7 @@ $tvOrganizations.Add_SelectedItemChanged({
         $deviceList = [System.Collections.ArrayList]::new()
         foreach ($dev in $devices) {
             [void]$deviceList.Add([PSCustomObject]@{
-                SystemName = [string]$dev.systemName
+                SystemName = Get-DeviceDisplayName -Device $dev
                 NodeClass  = $dev.nodeClass
                 AssetId    = $dev.id
                 RawDevice  = $dev
