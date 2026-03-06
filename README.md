@@ -1,8 +1,9 @@
 # NinjaOne Asset Label Printer
 
 A PowerShell-based WPF tool for printing asset labels for devices managed in [NinjaOne RMM](https://www.ninjarmm.com/).
+Tested on small mobile Printers and industrial Printers for higher volumes.
+<img width="629" height="838" alt="image" src="https://github.com/user-attachments/assets/bfb1979f-51ae-4a54-bc8d-fdfe44f6dc30" /><img width="1156" height="1536" alt="image" src="https://github.com/user-attachments/assets/f70fd519-bc66-4d75-8ba8-103c3d13c748" />
 
-<img width="629" height="838" alt="image" src="https://github.com/user-attachments/assets/bfb1979f-51ae-4a54-bc8d-fdfe44f6dc30" />
 
 
 ---
