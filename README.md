@@ -48,7 +48,7 @@ Der **NinjaOne Asset Label Printer** verbindet sich über die NinjaOne REST API 
 | Anforderung | Version / Hinweis |
 |---|---|
 | **Windows** | Windows 10 / Windows Server 2016 oder neuer |
-| **PowerShell** | Version 5.1 oder neuer |
+| **PowerShell** | Version 7 oder neuer |
 | **.NET Framework** | 4.7.2+ (WPF-Unterstützung + moderne Kryptografie) – bei Windows 10 (1803+) bereits enthalten |
 | **NinjaOne-Konto** | Zugang zum NinjaOne-Portal mit Berechtigung zur API-Nutzung |
 | **Drucker** | Beliebiger lokal installierter Windows-Drucker (z. B. Brother QL-Serie, Zebra, etc.) |
