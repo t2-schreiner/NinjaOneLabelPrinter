@@ -123,14 +123,8 @@ On every subsequent launch, you will be prompted for the **master password** whe
 
 The window is divided into **three columns**:
 
-```
-┌─────────────────┬───────────────────────────────┬──────────────────────┐
-│  Connection &   │     Device List                │  Label Designer      │
-│  Organizations  │     (Organization)             │  & Preview           │
-│                 ├───────────────────────────────│                      │
-│                 │  Recently Added Devices        │                      │
-└─────────────────┴───────────────────────────────┴──────────────────────┘
-```
+<img width="2879" height="1714" alt="image" src="https://github.com/user-attachments/assets/f66f3705-285b-4d27-ae53-604dd1264bf4" />
+
 
 ### Left Column – Connection & Organizations
 
