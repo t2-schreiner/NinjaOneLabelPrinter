@@ -503,6 +503,14 @@ $btnConnect.Add_Click({
         $mw = [Windows.Markup.XamlReader]::Load($mr)
         $mw.Owner = $window
 
+        # Enter-Taste im Passwortfeld → Entsperren auslösen
+        $mw.FindName("mpPassword").Add_KeyDown({
+            param($sender, $e)
+            if ($e.Key -eq [System.Windows.Input.Key]::Return) {
+                $mw.FindName("mpUnlock").RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+            }
+        })
+
         $mw.FindName("mpUnlock").Add_Click({
             $pw = $mw.FindName("mpPassword").Password
             if (-not $pw) { [System.Windows.MessageBox]::Show("Bitte Passwort eingeben.", "Hinweis", "OK", "Warning"); return }
@@ -1155,6 +1163,14 @@ $btnChangePw.Add_Click({
 
 # --- Initiale Vorschau ---
 Update-LabelPreview
+
+# --- Beim Start automatisch Passwort-Dialog öffnen (wenn verschlüsselte Zugangsdaten vorhanden) ---
+$window.Add_ContentRendered({
+    if ((-not $script:Config.ClientId -or -not $script:Config.ClientSecret) -and
+        $script:Config.MasterPasswordVerifier -and $script:Config.EncryptedClientId) {
+        $btnConnect.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
+    }
+})
 
 # --- Fenster anzeigen ---
 $window.ShowDialog() | Out-Null
