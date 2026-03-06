@@ -123,6 +123,7 @@ function Get-AppConfig {
         EncryptedClientId      = ""
         EncryptedClientSecret  = ""
         MasterPasswordVerifier = ""
+        OrgNameOverrides       = @{}
     }
     if (Test-Path $configFile) {
         $raw = Get-Content $configFile -Raw | ConvertFrom-Json
@@ -130,6 +131,14 @@ function Get-AppConfig {
             if ($defaults.PSObject.Properties[$prop.Name]) {
                 $defaults.$($prop.Name) = $prop.Value
             }
+        }
+        # Convert OrgNameOverrides from PSCustomObject to hashtable
+        if ($defaults.OrgNameOverrides -is [PSCustomObject]) {
+            $ht = @{}
+            foreach ($p in $defaults.OrgNameOverrides.PSObject.Properties) {
+                $ht[$p.Name] = $p.Value
+            }
+            $defaults.OrgNameOverrides = $ht
         }
         # Legacy plaintext credentials: keep for migration prompt
         if ($raw.PSObject.Properties['ClientId'] -and $raw.ClientId -and
@@ -153,6 +162,7 @@ function Save-AppConfig($cfg) {
         HeaderHeightPercent    = $cfg.HeaderHeightPercent
         LogoHeightPercent      = $cfg.LogoHeightPercent
         LogoPath               = $cfg.LogoPath
+        OrgNameOverrides       = if ($cfg.OrgNameOverrides) { $cfg.OrgNameOverrides } else { @{} }
         EncryptedClientId      = ""
         EncryptedClientSecret  = ""
         MasterPasswordVerifier = ""
@@ -248,7 +258,7 @@ function Get-SafeOsName {
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="NinjaOne Asset Label Printer" Height="750" Width="1100"
-        WindowStartupLocation="CenterScreen" Background="#1e1e2e">
+        WindowStartupLocation="CenterScreen" WindowState="Maximized" Background="#1e1e2e">
     <Window.Resources>
         <Style x:Key="HeaderText" TargetType="TextBlock">
             <Setter Property="Foreground" Value="White"/>
@@ -478,9 +488,25 @@ if ($script:Config.LastPrinter -and $cbPrinter.Items.Contains($script:Config.Las
 }
 
 # --- Globale Daten ---
-$script:Organizations = @()
-$script:AllDevices    = @()
-$script:OrgLookup     = @{}
+$script:Organizations   = @()
+$script:AllDevices      = @()
+$script:OrgLookup       = @{}
+$script:CurrentOrgId    = $null
+$script:OriginalOrgName = ""
+
+# Aktuellen Org-Override in Config merken
+function Update-OrgNameOverride {
+    if (-not $script:CurrentOrgId) { return }
+    $key = "$($script:CurrentOrgId)"
+    $currentText = $txtOrgName.Text
+    if ($currentText -and $currentText -ne $script:OriginalOrgName) {
+        $script:Config.OrgNameOverrides[$key] = $currentText
+    } else {
+        if ($script:Config.OrgNameOverrides.ContainsKey($key)) {
+            $script:Config.OrgNameOverrides.Remove($key)
+        }
+    }
+}
 
 # --- Verbindung herstellen ---
 $btnConnect.Add_Click({
@@ -690,9 +716,21 @@ $tvOrganizations.Add_SelectedItemChanged({
     $selected = $tvOrganizations.SelectedItem
     if (-not $selected -or -not $selected.Tag) { return }
 
+    # Vorherigen Override merken
+    Update-OrgNameOverride
+
     $orgId   = $selected.Tag
     $orgName = $selected.Header.ToString()
-    $txtOrgName.Text = $orgName
+    $script:CurrentOrgId    = $orgId
+    $script:OriginalOrgName = $orgName
+
+    # Override aus Config laden, falls vorhanden
+    $key = "$orgId"
+    if ($script:Config.OrgNameOverrides.ContainsKey($key)) {
+        $txtOrgName.Text = $script:Config.OrgNameOverrides[$key]
+    } else {
+        $txtOrgName.Text = $orgName
+    }
     $txtDate.Text = (Get-Date).ToString("MM/yyyy")
 
     try {
@@ -951,7 +989,21 @@ $dgRecent.Add_SelectionChanged({
         $dgDevices.UnselectAll()
     }
     if ($dgRecent.SelectedItem) {
-        $txtOrgName.Text = $dgRecent.SelectedItem.OrgName
+        # Vorherigen Override merken
+        Update-OrgNameOverride
+
+        $devOrgId   = $dgRecent.SelectedItem.RawDevice.organizationId
+        $devOrgName = $dgRecent.SelectedItem.OrgName
+        $script:CurrentOrgId    = $devOrgId
+        $script:OriginalOrgName = $devOrgName
+
+        # Override aus Config laden, falls vorhanden
+        $key = "$devOrgId"
+        if ($script:Config.OrgNameOverrides.ContainsKey($key)) {
+            $txtOrgName.Text = $script:Config.OrgNameOverrides[$key]
+        } else {
+            $txtOrgName.Text = $devOrgName
+        }
     }
     Update-LabelPreview
 })
@@ -978,7 +1030,8 @@ $btnPrint.Add_Click({
         return
     }
 
-    # Drucker merken
+    # Drucker und Org-Override merken
+    Update-OrgNameOverride
     $script:Config.LastPrinter = $selectedPrinter
     Save-AppConfig $script:Config
 
@@ -1178,6 +1231,12 @@ $window.Add_ContentRendered({
         $script:Config.MasterPasswordVerifier -and $script:Config.EncryptedClientId) {
         $btnConnect.RaiseEvent((New-Object System.Windows.RoutedEventArgs([System.Windows.Controls.Primitives.ButtonBase]::ClickEvent)))
     }
+})
+
+# --- Beim Schließen Org-Override speichern ---
+$window.Add_Closing({
+    Update-OrgNameOverride
+    Save-AppConfig $script:Config
 })
 
 # --- Fenster anzeigen ---
