@@ -879,7 +879,7 @@ function Update-LabelPreview {
     $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "GERÄTENAME" }
 
     # Gerätename: Schriftgröße proportional mit Auto-Shrink
-    $devFontPt = [Math]::Max(8, $contentH * 0.12)
+    $devFontPt = [Math]::Max(8, $contentH * 0.15)
     $devFontPx = $devFontPt * (4.0 / 3.0)
 
     # Auto-Shrink: Schriftgröße verkleinern, falls Text zu breit
@@ -919,12 +919,13 @@ function Update-LabelPreview {
     $canvasPreview.Children.Add($deviceText) | Out-Null
 
     # Datum links unten
-    $dateFontPt = [Math]::Max(5, $contentH * 0.08)
+    $dateFontPt = [Math]::Max(5, $contentH * 0.10)
     $dateFontPx = $dateFontPt * (4.0 / 3.0)
     $dateText = New-Object System.Windows.Controls.TextBlock
     $dateText.Text       = $txtDate.Text
     $dateText.Foreground = [System.Windows.Media.Brushes]::DimGray
     $dateText.FontFamily = New-Object System.Windows.Media.FontFamily("Segoe UI")
+    $dateText.FontWeight = [System.Windows.FontWeights]::SemiBold
     $dateText.FontSize   = $dateFontPx
     $dateText.Measure([System.Windows.Size]::new([double]::PositiveInfinity, [double]::PositiveInfinity))
     $dateTextH = $dateText.DesiredSize.Height
@@ -1097,7 +1098,7 @@ $btnPrint.Add_Click({
             } finally { $orgFont.Dispose() }
 
             # Gerätename mittig mit Auto-Shrink
-            $devFontSize = [Math]::Max(8, $h * 0.12 * 96.0 / 100.0)
+            $devFontSize = [Math]::Max(8, $h * 0.15 * 96.0 / 100.0)
             $devFont = New-Object System.Drawing.Font("Segoe UI", $devFontSize, [System.Drawing.FontStyle]::Bold)
             $devSize = $g.MeasureString($currentDevName, $devFont)
             $devAvailW = $w - 10
@@ -1118,7 +1119,7 @@ $btnPrint.Add_Click({
             } finally { $devFont.Dispose() }
 
             # Datum links unten
-            $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.08 * 96.0 / 100.0))
+            $dateFont = New-Object System.Drawing.Font("Segoe UI", [Math]::Max(5, $h * 0.10 * 96.0 / 100.0), [System.Drawing.FontStyle]::Bold)
             try {
                 $dateSize = $g.MeasureString($currentDate, $dateFont)
                 $g.DrawString($currentDate, $dateFont, [System.Drawing.Brushes]::DimGray,
