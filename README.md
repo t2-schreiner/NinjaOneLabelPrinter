@@ -25,6 +25,11 @@ Tested on small mobile Printers and industrial Printers for higher volumes.
 - [Settings & Configuration File](#settings--configuration-file)
 - [Security Concept](#security-concept)
 - [Troubleshooting](#troubleshooting)
+- [NinjaOne HTML Ticket Templates](#ninjaone-html-ticket-templates)
+  - [Available Templates](#available-templates)
+  - [How to Use](#how-to-use)
+  - [Design Features](#design-features)
+  - [Customization Tips](#customization-tips)
 
 ---
 
@@ -289,6 +294,53 @@ If you are upgrading from an older version without encryption, the tool automati
 | Label is not scaled correctly | Adjust the label dimensions in cm to match the physical labels of your printer exactly. |
 | Script does not start | Use the batch file `Start-NinjaOneLabelPrinter.bat` – it bypasses the execution policy automatically. Alternatively: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`. |
 | Logo does not appear | Make sure the file path is correct and the image is in a supported format (PNG, JPG, BMP). |
+
+---
+
+## NinjaOne HTML Ticket Templates
+
+The `TicketTemplates/` folder contains a set of professional, ready-to-use HTML ticket templates designed for IT service providers using NinjaOne. These templates can be imported directly into NinjaOne's ticket template system (which now supports HTML formatting).
+
+### Available Templates
+
+| Template | File | Description |
+|---|---|---|
+| 🔴 **Incident Report** | `Incident-Report.html` | Structured incident/outage report with impact assessment, diagnostic fields, and technician notes. |
+| 🔵 **Service Request** | `Service-Request.html` | General IT service request with categorized request types, approval workflow, and effort tracking. |
+| 🟢 **Onboarding Checklist** | `Onboarding-Checklist.html` | Complete IT onboarding checklist for new employees – accounts, hardware, software, security, and handover. |
+| 🟣 **Change Request** | `Change-Request.html` | ITIL-aligned change management template with risk assessment, rollback plan, and approval matrix. |
+| 🟡 **Maintenance Notification** | `Maintenance-Notification.html` | Professional maintenance window notification with affected services, user instructions, and post-maintenance notes. |
+| ⚫ **Offboarding Checklist** | `Offboarding-Checklist.html` | IT offboarding checklist for departing employees – account deactivation, data handling, hardware return, and cleanup. |
+| 🔷 **Monthly IT Report** | `Monthly-IT-Report.html` | Monthly IT management report with KPI dashboard, system availability, ticket breakdown, security status, and recommendations. |
+
+### How to Use
+
+1. Open the desired template HTML file from the `TicketTemplates/` folder.
+2. Copy the HTML content.
+3. In NinjaOne, navigate to **Administration → Ticketing → Ticket Templates**.
+4. Create a new template and switch to the **HTML editor**.
+5. Paste the HTML content into the editor.
+6. Customize the placeholder values (marked with `[brackets]`) to match your organization.
+7. Replace `[Firmenname]`, `[Telefonnummer]`, `[E-Mail-Adresse]`, and `[Website]` in the footer with your company details.
+8. Save the template.
+
+### Design Features
+
+- **Responsive table-based layout** – works reliably in all email clients and NinjaOne's rendering engine
+- **Consistent design language** – color-coded headers per template type (red = incident, blue = request, green = onboarding, etc.)
+- **Inline CSS** – no external stylesheets needed, maximum compatibility
+- **Professional typography** – uses Segoe UI / Roboto / Arial font stack
+- **Structured sections** – clearly separated with visual hierarchy (headers, cards, alert bars, dividers)
+- **Checkbox-style checklists** – easy to track progress in checklist templates
+- **Dark footer** – consistent company branding area across all templates
+- **German language** – designed for the DACH market (easily translatable)
+
+### Customization Tips
+
+- Replace the gradient colors in the header `background:linear-gradient(...)` to match your corporate identity
+- Add your company logo as an `<img>` tag in the header section
+- Adjust the card width (currently 640px) if needed
+- All placeholder values use `[brackets]` for easy find-and-replace
 
 ---
 

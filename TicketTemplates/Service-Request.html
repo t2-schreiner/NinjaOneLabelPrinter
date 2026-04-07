@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Serviceanfrage – Service Request</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:'Segoe UI',Roboto,Arial,sans-serif; color:#1e293b;">
+
+  <!-- Outer wrapper -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+
+        <!-- Main card -->
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#2563eb 0%,#1e40af 100%); padding:28px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:13px; font-weight:600; color:#bfdbfe; text-transform:uppercase; letter-spacing:2px;">📋 Service Request</span>
+                    <br />
+                    <span style="font-size:26px; font-weight:700; color:#ffffff; line-height:1.3;">Serviceanfrage</span>
+                  </td>
+                  <td align="right" valign="top">
+                    <span style="display:inline-block; background-color:rgba(255,255,255,0.2); color:#ffffff; font-size:12px; font-weight:600; padding:6px 14px; border-radius:20px; letter-spacing:1px;">ANFRAGE</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Info bar -->
+          <tr>
+            <td style="background-color:#eff6ff; border-left:4px solid #2563eb; padding:14px 32px;">
+              <span style="font-size:14px; color:#1e40af; font-weight:600;">ℹ️ Neue Serviceanfrage – bitte füllen Sie alle relevanten Felder aus.</span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:28px 32px;">
+
+              <!-- Ticket metadata -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Ticket-Nr.</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">#[Ticket-Nummer]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Erstellt am</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Datum/Uhrzeit]</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Anfragender</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Name]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Organisation</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Organisationsname]</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" style="padding:8px 0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Abteilung</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Abteilung]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Gewünschter Termin</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Wunschtermin]</span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Service type selection -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f9ff; border-radius:8px; margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <span style="font-size:13px; font-weight:700; color:#0369a1; text-transform:uppercase; letter-spacing:1px;">🏷️ Art der Anfrage</span>
+                    <div style="margin-top:14px; font-size:14px; line-height:2.0; color:#334155;">
+                      [ ] Neues Benutzerkonto / Zugänge<br />
+                      [ ] Software-Installation / Lizenz<br />
+                      [ ] Hardware-Beschaffung / Austausch<br />
+                      [ ] Berechtigungsänderung<br />
+                      [ ] VPN / Remote-Zugang<br />
+                      [ ] E-Mail / Verteilerliste<br />
+                      [ ] Druckereinrichtung<br />
+                      [ ] Netzwerkzugang / WLAN<br />
+                      [ ] Datensicherung / Wiederherstellung<br />
+                      [ ] Sonstiges (bitte unten beschreiben)
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Description section -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border-radius:8px; margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <span style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">📝 Beschreibung der Anfrage</span>
+                    <div style="margin-top:12px; font-size:14px; line-height:1.7; color:#334155;">
+                      <strong>Was wird benötigt?</strong><br />
+                      [Detaillierte Beschreibung der gewünschten Leistung]
+                      <br /><br />
+                      <strong>Begründung / Geschäftszweck:</strong><br />
+                      [Warum wird die Leistung benötigt?]
+                      <br /><br />
+                      <strong>Für wen wird die Leistung benötigt?</strong><br />
+                      [Betroffene Benutzer / Geräte]
+                      <br /><br />
+                      <strong>Besondere Anforderungen:</strong><br />
+                      [z.B. spezielle Software-Versionen, Berechtigungen, Konfigurationen]
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Approval section -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="background-color:#f0fdf4; border-left:4px solid #16a34a; border-radius:0 8px 8px 0; padding:16px 20px;">
+                    <span style="font-size:13px; font-weight:700; color:#166534; text-transform:uppercase; letter-spacing:1px;">✅ Genehmigung</span>
+                    <div style="margin-top:8px; font-size:14px; color:#14532d; line-height:1.6;">
+                      <strong>Genehmigt durch:</strong> [Name Vorgesetzter]<br />
+                      <strong>Kostenstelle:</strong> [Kostenstelle / Budget]<br />
+                      <strong>Genehmigungsstatus:</strong> [ ] Ausstehend &nbsp; [ ] Genehmigt &nbsp; [ ] Abgelehnt
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Internal section -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-top:2px dashed #e2e8f0; padding-top:20px;">
+                    <span style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">🔧 Intern – Bearbeitung</span>
+                    <div style="margin-top:12px; font-size:14px; line-height:1.7; color:#334155;">
+                      <strong>Zugewiesener Techniker:</strong> [Techniker]<br />
+                      <strong>Geschätzter Aufwand:</strong> [Stunden]<br />
+                      <strong>Bemerkungen:</strong><br />
+                      [Interne Notizen zur Bearbeitung]
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#1e293b; padding:20px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:13px; color:#94a3b8;">[Firmenname] – IT-Service</span><br />
+                    <span style="font-size:12px; color:#64748b;">📞 [Telefonnummer] &nbsp;|&nbsp; ✉ [E-Mail-Adresse] &nbsp;|&nbsp; 🌐 [Website]</span>
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="font-size:11px; color:#475569;">Template v1.0</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

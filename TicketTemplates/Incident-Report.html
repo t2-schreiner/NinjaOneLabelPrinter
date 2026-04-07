@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Störungsmeldung – Incident Report</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f6f8; font-family:'Segoe UI',Roboto,Arial,sans-serif; color:#1e293b;">
+
+  <!-- Outer wrapper -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f8;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+
+        <!-- Main card -->
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#dc2626 0%,#991b1b 100%); padding:28px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:13px; font-weight:600; color:#fecaca; text-transform:uppercase; letter-spacing:2px;">⚠ Incident Report</span>
+                    <br />
+                    <span style="font-size:26px; font-weight:700; color:#ffffff; line-height:1.3;">Störungsmeldung</span>
+                  </td>
+                  <td align="right" valign="top">
+                    <span style="display:inline-block; background-color:rgba(255,255,255,0.2); color:#ffffff; font-size:12px; font-weight:600; padding:6px 14px; border-radius:20px; letter-spacing:1px;">PRIORITÄT: HOCH</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Alert bar -->
+          <tr>
+            <td style="background-color:#fef2f2; border-left:4px solid #dc2626; padding:14px 32px;">
+              <span style="font-size:14px; color:#991b1b; font-weight:600;">🔴 Eine neue Störung wurde gemeldet und erfordert Ihre Aufmerksamkeit.</span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:28px 32px;">
+
+              <!-- Ticket metadata -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Ticket-Nr.</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">#[Ticket-Nummer]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Erstellt am</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Datum/Uhrzeit]</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Melder</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Name des Melders]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0; border-bottom:1px solid #e2e8f0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Organisation</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Organisationsname]</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" style="padding:8px 0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Betroffenes Gerät</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Gerätename]</span>
+                  </td>
+                  <td width="50%" style="padding:8px 0;">
+                    <span style="font-size:12px; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Zugewiesener Techniker</span><br />
+                    <span style="font-size:15px; font-weight:600; color:#1e293b;">[Techniker]</span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Description section -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f8fafc; border-radius:8px; margin-bottom:24px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <span style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">📝 Störungsbeschreibung</span>
+                    <div style="margin-top:12px; font-size:14px; line-height:1.7; color:#334155;">
+                      [Bitte beschreiben Sie die Störung so detailliert wie möglich:]
+                      <br /><br />
+                      <strong>Was ist passiert?</strong><br />
+                      [Fehlerbeschreibung]
+                      <br /><br />
+                      <strong>Wann trat das Problem erstmals auf?</strong><br />
+                      [Zeitpunkt]
+                      <br /><br />
+                      <strong>Können Sie das Problem reproduzieren?</strong><br />
+                      [ ] Ja &nbsp;&nbsp; [ ] Nein &nbsp;&nbsp; [ ] Sporadisch
+                      <br /><br />
+                      <strong>Fehlermeldung (falls vorhanden):</strong><br />
+                      [Fehlermeldung / Screenshot-Beschreibung]
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Impact section -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="background-color:#fff7ed; border-left:4px solid #f97316; border-radius:0 8px 8px 0; padding:16px 20px;">
+                    <span style="font-size:13px; font-weight:700; color:#9a3412; text-transform:uppercase; letter-spacing:1px;">⚡ Auswirkung</span>
+                    <div style="margin-top:8px; font-size:14px; color:#431407; line-height:1.6;">
+                      <strong>Betroffene Benutzer:</strong> [Anzahl / Abteilung]<br />
+                      <strong>Geschäftsprozesse betroffen:</strong> [Ja/Nein – welche?]<br />
+                      <strong>Workaround vorhanden:</strong> [Ja/Nein – Beschreibung]
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Divider -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td style="border-top:2px dashed #e2e8f0; padding-top:20px;">
+                    <span style="font-size:13px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:1px;">🔧 Für den Techniker</span>
+                    <div style="margin-top:12px; font-size:14px; line-height:1.7; color:#334155;">
+                      <strong>Erste Diagnose:</strong><br />
+                      [Hier Diagnose-Ergebnisse eintragen]
+                      <br /><br />
+                      <strong>Durchgeführte Maßnahmen:</strong><br />
+                      [Bisherige Schritte dokumentieren]
+                      <br /><br />
+                      <strong>Nächste Schritte:</strong><br />
+                      [Geplante Maßnahmen]
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#1e293b; padding:20px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:13px; color:#94a3b8;">[Firmenname] – IT-Support</span><br />
+                    <span style="font-size:12px; color:#64748b;">📞 [Telefonnummer] &nbsp;|&nbsp; ✉ [E-Mail-Adresse] &nbsp;|&nbsp; 🌐 [Website]</span>
+                  </td>
+                  <td align="right" valign="middle">
+                    <span style="font-size:11px; color:#475569;">Template v1.0</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Main card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
