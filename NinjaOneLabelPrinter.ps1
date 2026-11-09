@@ -374,6 +374,10 @@ function Get-SafeOsName {
                     <TextBlock Text="Date (month/year, editable):" Style="{StaticResource HeaderText}"/>
                     <TextBox Name="txtDate" Style="{StaticResource InputBox}" Margin="0,0,0,8"/>
 
+                    <!-- Manual device name (no database connection required) -->
+                    <TextBlock Text="Manual device name (no DB needed):" Style="{StaticResource HeaderText}"/>
+                    <TextBox Name="txtManualDevice" Style="{StaticResource InputBox}" Margin="0,0,0,8"/>
+
                     <!-- Label dimensions -->
                     <TextBlock Text="Label size:" Style="{StaticResource HeaderText}"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -455,6 +459,7 @@ $dgDevices        = $window.FindName("dgDevices")
 $dgRecent         = $window.FindName("dgRecent")
 $txtOrgName       = $window.FindName("txtOrgName")
 $txtDate          = $window.FindName("txtDate")
+$txtManualDevice  = $window.FindName("txtManualDevice")
 $txtLabelWidth    = $window.FindName("txtLabelWidth")
 $txtLabelHeight   = $window.FindName("txtLabelHeight")
 $txtLogoPath      = $window.FindName("txtLogoPath")
@@ -876,7 +881,14 @@ function Update-LabelPreview {
     } elseif ($dgRecent.SelectedItems.Count -gt 0) {
         $selectedDevices = $dgRecent.SelectedItems
     }
-    $deviceName = if ($selectedDevices.Count -gt 0) { [string]$selectedDevices[0].SystemName } else { "DEVICE NAME" }
+    $manualDevName = if ($txtManualDevice) { $txtManualDevice.Text.Trim() } else { "" }
+    $deviceName = if ($selectedDevices.Count -gt 0) {
+        [string]$selectedDevices[0].SystemName
+    } elseif ($manualDevName) {
+        $manualDevName
+    } else {
+        "DEVICE NAME"
+    }
 
     # Device name: proportional font size with auto-shrink
     $devFontPt = [Math]::Max(8, $contentH * 0.15)
@@ -971,6 +983,7 @@ function Update-LabelPreview {
 # --- Auto-update preview on value changes ---
 $txtOrgName.Add_TextChanged({ Update-LabelPreview })
 $txtDate.Add_TextChanged({ Update-LabelPreview })
+$txtManualDevice.Add_TextChanged({ Update-LabelPreview })
 $txtLabelWidth.Add_TextChanged({ Update-LabelPreview })
 $txtLabelHeight.Add_TextChanged({ Update-LabelPreview })
 $txtPaddingMm.Add_TextChanged({ Update-LabelPreview })
@@ -1026,8 +1039,16 @@ $btnPrint.Add_Click({
         $devicesToPrint += $dgRecent.SelectedItems | ForEach-Object { $_.SystemName }
     }
 
+    # Manual mode: if no device selected, use the manually entered device name
     if ($devicesToPrint.Count -eq 0) {
-        [System.Windows.MessageBox]::Show("Please select at least one device!", "Notice", "OK", "Warning")
+        $manualDevName = $txtManualDevice.Text.Trim()
+        if ($manualDevName) {
+            $devicesToPrint += $manualDevName
+        }
+    }
+
+    if ($devicesToPrint.Count -eq 0) {
+        [System.Windows.MessageBox]::Show("Please select at least one device or enter a manual device name!", "Notice", "OK", "Warning")
         return
     }
 
