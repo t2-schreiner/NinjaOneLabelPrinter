@@ -38,6 +38,7 @@ The **NinjaOne Asset Label Printer** connects to your NinjaOne account via the N
 - 🏢 Browse all organizations and their devices
 - 🕐 Display the 20 most recently added devices (across all organizations)
 - 🏷 Live label preview with organization name, device name, date, and logo
+- ✍️ Manual mode: print a label with a hand-typed device name, no database/API connection required
 - 🖨 Direct printing on any Windows printer (including label printers)
 - 📐 Fully configurable label format (width × height in cm)
 - 🔧 Adjustable inner padding, header height, and logo height (as percentage of label size)
@@ -151,6 +152,7 @@ The window is divided into **three columns**:
 |---|---|
 | **Organization name** | Automatically populated from the selected organization – can be manually overridden. Overrides are saved per organization. |
 | **Date (month/year)** | Defaults to the current month/year – can be manually adjusted. |
+| **Manual device name** | Lets you type a device name by hand. Used for the preview and printing when **no** device is selected in the lists, so you can print a label without any database/API connection. |
 | **Label size** | Width and height of the label in centimeters (e.g. `4.0 × 2.5 cm`). |
 | **Inner padding** | Padding in millimeters applied on all sides of the label content. |
 | **Header / Logo height** | Percentage of the label height used for the header bar and logo area respectively. |
@@ -197,6 +199,17 @@ The Label design looks like this but many elements are configureable.
 6. Click **🖨 Print label(s)**.
 
 > One **separate label** is printed for each selected device.
+
+### Manual mode (no database connection)
+
+You can also print a label **without connecting to NinjaOne**:
+
+1. Leave the device lists empty (do not select any device).
+2. Type the desired device name into the **Manual device name** field in the Label Designer.
+3. Adjust organization name, date, label size, logo, and printer as needed.
+4. Click **🖨 Print label(s)**.
+
+The manually entered name is used only when no device is selected in the lists. As soon as you select a device from a list, that selection takes priority over the manual field.
 
 ---
 
